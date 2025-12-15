@@ -1,0 +1,2 @@
+-- Alter table GUI_XMDM_CST.D_ST_BPM_MEMBER: drop constraint, add constraint
+ALTER TABLE "GUI_XMDM_CST"."D_ST_BPM_MEMBER" DROP CONSTRAINT "PK_CST_BPM_MEMBER";

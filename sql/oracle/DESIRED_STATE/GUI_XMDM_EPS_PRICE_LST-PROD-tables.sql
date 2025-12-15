@@ -1,0 +1,447 @@
+-- @TBL_GUI_NAME: Alternative Currency List
+-- @TBL_GUI_NAME_SHORT: AC List
+-- @TBL_NAME_AT: ACLIST_AT
+-- @TBL_DISPLAY_ORDER: 9
+CREATE TABLE "GUI_XMDM_EPS_PRICE_LST"."ACLIST" (
+  -- @COL_GUI_NAME: AC List
+  -- @COL_DESC: AC List
+  -- @COL_DISPLAY_ORDER: 1
+  -- @COL_PK: Y
+  "ACLIST" VARCHAR2(30 BYTE),
+  -- @COL_GUI_NAME: Remarks
+  -- @COL_DESC: Remarks
+  -- @COL_DISPLAY_ORDER: 2
+  "REMARKS" VARCHAR2(250 BYTE),
+  "ITS" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) TABLESPACE XMDM_FACT;
+-- @TBL_GUI_NAME: AC List Members
+-- @TBL_GUI_NAME_SHORT: AC List Members
+-- @TBL_NAME_AT: ACLIST_MEMBERS_AT
+-- @TBL_DISPLAY_ORDER: 11
+CREATE TABLE "GUI_XMDM_EPS_PRICE_LST"."ACLIST_MEMBERS" (
+  -- @COL_GUI_NAME: AC List
+  -- @COL_DESC: AC List
+  -- @COL_DISPLAY_ORDER: 1
+  -- @COL_PK: Y
+  "ACLIST" VARCHAR2(30 BYTE),
+  -- @COL_GUI_NAME: Member ID
+  -- @COL_DESC: Member ID
+  -- @COL_DISPLAY_ORDER: 2
+  -- @COL_PK: Y
+  "MEMBER_ID" VARCHAR2(50 BYTE),
+  -- @COL_GUI_NAME: Product ID
+  -- @COL_DESC: Product ID
+  -- @COL_DISPLAY_ORDER: 3
+  -- @COL_PK: Y
+  "PRODUCT_ID" VARCHAR2(50 BYTE),
+  -- @COL_GUI_NAME: Product Name
+  -- @COL_DESC: Product Name
+  -- @COL_DISPLAY_ORDER: 4
+  "PRODUCT_NAME" VARCHAR2(150 BYTE),
+  -- @COL_GUI_NAME: Currency
+  -- @COL_DESC: Currency
+  -- @COL_DISPLAY_ORDER: 5
+  "CURRENCY" VARCHAR2(5 BYTE),
+  "ITS" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) TABLESPACE XMDM_FACT;
+-- @TBL_GUI_NAME: AC List to Scenario Assignment
+-- @TBL_GUI_NAME_SHORT: AC List to Scenario Assignm
+-- @TBL_NAME_AT: ACLIST_SCENARIO_ASSIGNM_AT
+-- @TBL_DISPLAY_ORDER: 10
+CREATE TABLE "GUI_XMDM_EPS_PRICE_LST"."ACLIST_SCENARIO_ASSIGNM" (
+  -- @COL_GUI_NAME: Scenario Name
+  -- @COL_DESC: Scenario Name
+  -- @COL_DISPLAY_ORDER: 1
+  -- @COL_PK: Y
+  "SCENARIO_NAME" VARCHAR2(100 BYTE),
+  -- @COL_GUI_NAME: AC List
+  -- @COL_DESC: AC List
+  -- @COL_DISPLAY_ORDER: 2
+  -- @COL_PK: Y
+  "ACLIST" VARCHAR2(30 BYTE),
+  -- @COL_GUI_NAME: Start Date
+  -- @COL_DESC: Start Date
+  -- @COL_DISPLAY_ORDER: 3
+  -- @COL_PK: Y
+  -- @COL_FORMAT: dd.MM.yyyy
+  "START_DATE" DATE,
+  -- @COL_GUI_NAME: End Date
+  -- @COL_DESC: End Date
+  -- @COL_DISPLAY_ORDER: 4
+  -- @COL_FORMAT: dd.MM.yyyy
+  "END_DATE" DATE,
+  "ITS" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) TABLESPACE XMDM_FACT;
+-- @TBL_GUI_NAME: Grid to Price List Assignment
+-- @TBL_GUI_NAME_SHORT: Grid to Price List Assignm
+-- @TBL_NAME_AT: GRID_PRICELIST_ASSIGNM_AT
+-- @TBL_DISPLAY_ORDER: 6
+CREATE TABLE "GUI_XMDM_EPS_PRICE_LST"."GRID_PRICELIST_ASSIGNM" (
+  -- @COL_GUI_NAME: Price List
+  -- @COL_DESC: Price List
+  -- @COL_DISPLAY_ORDER: 1
+  -- @COL_PK: Y
+  "PLIST" VARCHAR2(100 BYTE),
+  -- @COL_GUI_NAME: Price Grid
+  -- @COL_DESC: Price Grid
+  -- @COL_DISPLAY_ORDER: 2
+  -- @COL_PK: Y
+  "PGRID" VARCHAR2(150 BYTE),
+  -- @COL_GUI_NAME: Node
+  -- @COL_DESC: Node
+  -- @COL_DISPLAY_ORDER: 3
+  -- @COL_PK: Y
+  "NODE" VARCHAR2(150 BYTE),
+  -- @COL_GUI_NAME: Priority
+  -- @COL_DESC: Priority
+  -- @COL_DISPLAY_ORDER: 4
+  -- @COL_PK: Y
+  -- @COL_FORMAT: #
+  "PRIORITY" NUMBER(*, 0),
+  -- @COL_GUI_NAME: Account Type
+  -- @COL_DESC: Account Type
+  -- @COL_DISPLAY_ORDER: 5
+  -- @COL_PK: Y
+  "ACCOUNTTYPE" VARCHAR2(50 BYTE),
+  -- @COL_GUI_NAME: Delay
+  -- @COL_DESC: Delay
+  -- @COL_DISPLAY_ORDER: 6
+  -- @COL_PK: Y
+  "DELAY" VARCHAR2(50 BYTE),
+  -- @COL_GUI_NAME: Execution Type
+  -- @COL_DESC: Execution Type
+  -- @COL_DISPLAY_ORDER: 7
+  -- @COL_PK: Y
+  "EXECTYPE" VARCHAR2(50 BYTE),
+  -- @COL_GUI_NAME: Disclosed
+  -- @COL_DESC: Disclosure
+  -- @COL_DISPLAY_ORDER: 8
+  -- @COL_PK: Y
+  "DISCLOSED" VARCHAR2(50 BYTE),
+  -- @COL_GUI_NAME: Subtype Name
+  -- @COL_DESC: Subtype Name
+  -- @COL_DISPLAY_ORDER: 9
+  -- @COL_PK: Y
+  "SUBTYPE_NAME" VARCHAR2(50 BYTE),
+  -- @COL_GUI_NAME: Expiry
+  -- @COL_DESC: Expiration Date
+  -- @COL_DISPLAY_ORDER: 10
+  -- @COL_PK: Y
+  "EXPIRY" VARCHAR2(50 BYTE),
+  -- @COL_GUI_NAME: Price Change
+  -- @COL_DESC: Price Change
+  -- @COL_DISPLAY_ORDER: 11
+  -- @COL_PK: Y
+  "PRICE_CHANGED" VARCHAR2(50 BYTE),
+  -- @COL_GUI_NAME: Charge Lepos
+  -- @COL_DESC: Charge Lepos
+  -- @COL_DISPLAY_ORDER: 12
+  -- @COL_FORMAT: #
+  "CHARGE_LEPOS" NUMBER(*, 0),
+  "ITS" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) TABLESPACE XMDM_FACT;
+-- @TBL_GUI_NAME: Price per Grid
+-- @TBL_GUI_NAME_SHORT: Price per Grid
+-- @TBL_NAME_AT: GRID_PRICE_ASSIGNM_AT
+-- @TBL_DISPLAY_ORDER: 4
+CREATE TABLE "GUI_XMDM_EPS_PRICE_LST"."GRID_PRICE_ASSIGNM" (
+  -- @COL_GUI_NAME: Price Grid
+  -- @COL_DESC: Price Grid
+  -- @COL_DISPLAY_ORDER: 1
+  -- @COL_PK: Y
+  "PGRID" VARCHAR2(150 BYTE),
+  -- @COL_GUI_NAME: Pricing Group
+  -- @COL_DESC: Pricing Group
+  -- @COL_DISPLAY_ORDER: 2
+  -- @COL_PK: Y
+  "PRICING_GROUP" VARCHAR2(150 BYTE),
+  -- @COL_GUI_NAME: Node
+  -- @COL_DESC: Node
+  -- @COL_DISPLAY_ORDER: 3
+  -- @COL_PK: Y
+  "NODE" VARCHAR2(150 BYTE),
+  -- @COL_GUI_NAME: Product ID
+  -- @COL_DESC: Product ID
+  -- @COL_DISPLAY_ORDER: 4
+  -- @COL_PK: Y
+  "PRODUCT_ID" VARCHAR2(20 BYTE),
+  -- @COL_GUI_NAME: Product Name
+  -- @COL_DESC: Product Name
+  -- @COL_DISPLAY_ORDER: 5
+  "PRODUCT_NAME" VARCHAR2(150 BYTE),
+  -- @COL_GUI_NAME: Price
+  -- @COL_DESC: Price
+  -- @COL_DISPLAY_ORDER: 6
+  -- @COL_FORMAT: 0.0000
+  "PRICE" NUMBER,
+  -- @COL_GUI_NAME: Currency
+  -- @COL_DESC: Currency
+  -- @COL_DISPLAY_ORDER: 7
+  "CURRENCY" VARCHAR2(5 BYTE),
+  -- @COL_GUI_NAME: Alternative Currency
+  -- @COL_DESC: Alternative Currency
+  -- @COL_DISPLAY_ORDER: 8
+  "ALTERNATIVE_CURRENCY" VARCHAR2(5 BYTE),
+  -- @COL_GUI_NAME: Remarks
+  -- @COL_DESC: Remarks
+  -- @COL_DISPLAY_ORDER: 9
+  "REMARKS" VARCHAR2(250 BYTE),
+  -- @COL_GUI_NAME: Unit of Count
+  -- @COL_DESC: Unit of Count
+  -- @COL_DISPLAY_ORDER: 10
+  "UNIT_OF_COUNT" VARCHAR2(50 BYTE),
+  "ITS" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) TABLESPACE XMDM_FACT;
+-- @TBL_GUI_NAME: Grid to Template Assignment
+-- @TBL_GUI_NAME_SHORT: Grid to Template Assignm
+-- @TBL_NAME_AT: GRID_TEMPLATE_ASSIGNM_AT
+-- @TBL_DISPLAY_ORDER: 3
+CREATE TABLE "GUI_XMDM_EPS_PRICE_LST"."GRID_TEMPLATE_ASSIGNM" (
+  -- @COL_GUI_NAME: Price Grid
+  -- @COL_DESC: Price Grid
+  -- @COL_DISPLAY_ORDER: 1
+  -- @COL_PK: Y
+  "PGRID" VARCHAR2(150 BYTE),
+  -- @COL_GUI_NAME: Remarks
+  -- @COL_DESC: Remarks
+  -- @COL_DISPLAY_ORDER: 2
+  "REMARKS" VARCHAR2(250 BYTE),
+  -- @COL_GUI_NAME: Template
+  -- @COL_DESC: Template
+  -- @COL_DISPLAY_ORDER: 3
+  "TEMPLATE" VARCHAR2(150 BYTE),
+  "ITS" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) TABLESPACE XMDM_FACT;
+-- @TBL_GUI_NAME: Inheritance Exception
+-- @TBL_GUI_NAME_SHORT: Inheritance Exception
+-- @TBL_NAME_AT: INHERITANCE_EXCEPTION_AT
+-- @TBL_DISPLAY_ORDER: 12
+CREATE TABLE "GUI_XMDM_EPS_PRICE_LST"."INHERITANCE_EXCEPTION" (
+  -- @COL_GUI_NAME: Scenario Name
+  -- @COL_DESC: Scenario Name
+  -- @COL_DISPLAY_ORDER: 1
+  -- @COL_PK: Y
+  "SCENARIO_NAME" VARCHAR2(500 BYTE),
+  -- @COL_GUI_NAME: Service
+  -- @COL_DESC: Service
+  -- @COL_DISPLAY_ORDER: 2
+  -- @COL_PK: Y
+  "SERVICE" VARCHAR2(50 BYTE),
+  -- @COL_GUI_NAME: Inheritance Name
+  -- @COL_DESC: Inheritance Name
+  -- @COL_DISPLAY_ORDER: 3
+  -- @COL_PK: Y
+  "INH_NAME" VARCHAR2(500 BYTE),
+  "ITS" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) TABLESPACE XMDM_FACT;
+-- @TBL_GUI_NAME: Known Pricetypes
+-- @TBL_GUI_NAME_SHORT: Known Pricetypes
+-- @TBL_NAME_AT: KNOWN_PRICETYPES_AT
+-- @TBL_DISPLAY_ORDER: 1
+CREATE TABLE "GUI_XMDM_EPS_PRICE_LST"."KNOWN_PRICETYPES" (
+  -- @COL_GUI_NAME: Fee Indication Category Type
+  -- @COL_DESC: Fee type which is appearing in CB165/CB192 billing reports
+  -- @COL_DISPLAY_ORDER: 1
+  -- @COL_PK: Y
+  "FEE_IND_CAT_TYP" VARCHAR2(150 BYTE),
+  -- @COL_GUI_NAME: Calculation scope
+  -- @COL_DESC: Calculation scope for reconciliation with values: GF - Gross Fee, VR - volume rebate, MMR - Market Making Rebate and TF28 - "Sonderlocke", LP rebate for Fixed Income options on taken-up volume
+  -- @COL_DISPLAY_ORDER: 2
+  "CAL_SCOPE" VARCHAR2(10 BYTE),
+  -- @COL_GUI_NAME: Route
+  -- @COL_DESC: Route
+  -- @COL_DISPLAY_ORDER: 3
+  "ROUTE" VARCHAR2(20 BYTE),
+  -- @COL_GUI_NAME: Service
+  -- @COL_DESC: Service
+  -- @COL_DISPLAY_ORDER: 4
+  "SERVICE" VARCHAR2(50 BYTE),
+  -- @COL_GUI_NAME: Session Name
+  -- @COL_DESC: Session Name
+  -- @COL_DISPLAY_ORDER: 5
+  "SESSION_NAME" VARCHAR2(20 BYTE),
+  -- @COL_GUI_NAME: Is Primary flag
+  -- @COL_DESC: Primary flag 0 - non primary, 1 - primary
+  -- @COL_DISPLAY_ORDER: 6
+  -- @COL_FORMAT: #
+  "IS_PRIMARY" NUMBER(*, 0),
+  "ITS" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) TABLESPACE XMDM_FACT;
+-- @TBL_GUI_NAME: Price lists
+-- @TBL_GUI_NAME_SHORT: Price lists
+-- @TBL_NAME_AT: PRICELIST_AT
+-- @TBL_DISPLAY_ORDER: 5
+CREATE TABLE "GUI_XMDM_EPS_PRICE_LST"."PRICELIST" (
+  -- @COL_GUI_NAME: Price List
+  -- @COL_DESC: Price List
+  -- @COL_DISPLAY_ORDER: 1
+  -- @COL_PK: Y
+  "PLIST" VARCHAR2(100 BYTE),
+  -- @COL_GUI_NAME: Remarks
+  -- @COL_DESC: Comments
+  -- @COL_DISPLAY_ORDER: 2
+  "REMARKS" VARCHAR2(250 BYTE),
+  "ITS" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) TABLESPACE XMDM_FACT;
+-- @TBL_GUI_NAME: Price List to Scenario Assignment
+-- @TBL_GUI_NAME_SHORT: Price List to Scenario Assignm
+-- @TBL_NAME_AT: PRICELIST_SCENARIO_ASSIGNM_AT
+-- @TBL_DISPLAY_ORDER: 7
+CREATE TABLE "GUI_XMDM_EPS_PRICE_LST"."PRICELIST_SCENARIO_ASSIGNM" (
+  -- @COL_GUI_NAME: Scenario Name
+  -- @COL_DESC: Scenario Name
+  -- @COL_DISPLAY_ORDER: 1
+  -- @COL_PK: Y
+  "SCENARIO_NAME" VARCHAR2(100 BYTE),
+  -- @COL_GUI_NAME: Service
+  -- @COL_DESC: Service
+  -- @COL_DISPLAY_ORDER: 2
+  -- @COL_PK: Y
+  "SERVICE" VARCHAR2(50 BYTE),
+  -- @COL_GUI_NAME: Route
+  -- @COL_DESC: Route
+  -- @COL_DISPLAY_ORDER: 3
+  -- @COL_PK: Y
+  "ROUTE" VARCHAR2(50 BYTE),
+  -- @COL_GUI_NAME: Start Date
+  -- @COL_DESC: Start Date
+  -- @COL_DISPLAY_ORDER: 4
+  -- @COL_PK: Y
+  -- @COL_FORMAT: dd.MM.yyyy
+  "START_DATE" DATE,
+  -- @COL_GUI_NAME: End Date
+  -- @COL_DESC: End Date
+  -- @COL_DISPLAY_ORDER: 5
+  -- @COL_FORMAT: dd.MM.yyyy
+  "END_DATE" DATE,
+  -- @COL_GUI_NAME: Priority
+  -- @COL_DESC: Priority
+  -- @COL_DISPLAY_ORDER: 6
+  -- @COL_PK: Y
+  -- @COL_FORMAT: #
+  "PRIORITY" NUMBER(*, 0),
+  -- @COL_GUI_NAME: Price List
+  -- @COL_DESC: Price List
+  -- @COL_DISPLAY_ORDER: 7
+  -- @COL_PK: Y
+  "PLIST" VARCHAR2(100 BYTE),
+  -- @COL_GUI_NAME: Remarks
+  -- @COL_DESC: Remarks
+  -- @COL_DISPLAY_ORDER: 8
+  "REMARKS" VARCHAR2(250 BYTE),
+  -- @COL_GUI_NAME: Is Enlight Incent
+  -- @COL_DESC: Is Enlight Incent
+  -- @COL_DISPLAY_ORDER: 9
+  -- @COL_FORMAT: #
+  "IS_ENLIGHT_INCENT" NUMBER(*, 0),
+  "ITS" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) TABLESPACE XMDM_FACT;
+-- @TBL_GUI_NAME: Scenarios
+-- @TBL_GUI_NAME_SHORT: Scenarios
+-- @TBL_NAME_AT: SCENARIOS_AT
+-- @TBL_DISPLAY_ORDER: 8
+CREATE TABLE "GUI_XMDM_EPS_PRICE_LST"."SCENARIOS" (
+  -- @COL_GUI_NAME: Scenario Name
+  -- @COL_DESC: Scenario Name
+  -- @COL_DISPLAY_ORDER: 1
+  -- @COL_PK: Y
+  "SCENARIO_NAME" VARCHAR2(100 BYTE),
+  -- @COL_GUI_NAME: Case Name
+  -- @COL_DESC: Case Name
+  -- @COL_DISPLAY_ORDER: 2
+  "CASE_NAME" VARCHAR2(100 BYTE),
+  -- @COL_GUI_NAME: Scenario Name Parent
+  -- @COL_DESC: Scenario Name Parent
+  -- @COL_DISPLAY_ORDER: 3
+  "SCENARIO_NAME_PARENT" VARCHAR2(100 BYTE),
+  -- @COL_GUI_NAME: Start Date
+  -- @COL_DESC: Start Date
+  -- @COL_DISPLAY_ORDER: 4
+  -- @COL_FORMAT: dd.MM.yyyy
+  "START_DATE" DATE,
+  -- @COL_GUI_NAME: End Date
+  -- @COL_DESC: End Date
+  -- @COL_DISPLAY_ORDER: 5
+  -- @COL_FORMAT: dd.MM.yyyy
+  "END_DATE" DATE,
+  -- @COL_GUI_NAME: Include Projection
+  -- @COL_DESC: Include Projection
+  -- @COL_DISPLAY_ORDER: 6
+  -- @COL_FORMAT: #
+  "INCLUDE_PROJECTION" NUMBER(*, 0),
+  -- @COL_GUI_NAME: Multilateral Trade
+  -- @COL_DESC: Multilateral Trade
+  -- @COL_DISPLAY_ORDER: 7
+  -- @COL_FORMAT: #
+  "MULTILATERAL_TRADE" NUMBER(*, 0),
+  -- @COL_GUI_NAME: Charge Free Volume
+  -- @COL_DESC: Charge Free Volume
+  -- @COL_DISPLAY_ORDER: 8
+  -- @COL_FORMAT: #
+  "CHARGE_FREE_VOLUME" NUMBER(*, 0),
+  -- @COL_GUI_NAME: EBI No TSR
+  -- @COL_DESC: EBI No TSR
+  -- @COL_DISPLAY_ORDER: 9
+  -- @COL_FORMAT: #
+  "EBI_NO_TSR" NUMBER(*, 0),
+  -- @COL_GUI_NAME: EBI No MMR
+  -- @COL_DESC: EBI No MMR
+  -- @COL_DISPLAY_ORDER: 10
+  -- @COL_FORMAT: #
+  "EBI_NO_MMR" NUMBER(*, 0),
+  -- @COL_GUI_NAME: EBI No VR
+  -- @COL_DESC: EBI No VR
+  -- @COL_DISPLAY_ORDER: 11
+  -- @COL_FORMAT: #
+  "EBI_NO_VR" NUMBER(*, 0),
+  "ITS" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) TABLESPACE XMDM_FACT;
+-- @TBL_GUI_NAME: Templates
+-- @TBL_GUI_NAME_SHORT: Templates
+-- @TBL_NAME_AT: TEMPLATES_AT
+-- @TBL_DISPLAY_ORDER: 2
+CREATE TABLE "GUI_XMDM_EPS_PRICE_LST"."TEMPLATES" (
+  -- @COL_GUI_NAME: Template
+  -- @COL_DESC: Template
+  -- @COL_DISPLAY_ORDER: 1
+  -- @COL_PK: Y
+  "TEMPLATE" VARCHAR2(150 BYTE),
+  -- @COL_GUI_NAME: Pricing Group
+  -- @COL_DESC: Pricing Group
+  -- @COL_DISPLAY_ORDER: 2
+  -- @COL_PK: Y
+  "PRICING_GROUP" VARCHAR2(150 BYTE),
+  -- @COL_GUI_NAME: Currency
+  -- @COL_DESC: Currency
+  -- @COL_DISPLAY_ORDER: 3
+  "CURRENCY" VARCHAR2(5 BYTE),
+  -- @COL_GUI_NAME: Node
+  -- @COL_DESC: Node
+  -- @COL_DISPLAY_ORDER: 4
+  "NODE" VARCHAR2(150 BYTE),
+  -- @COL_GUI_NAME: Fibu
+  -- @COL_DESC: Fibu
+  -- @COL_DISPLAY_ORDER: 5
+  "FIBU" VARCHAR2(20 BYTE),
+  -- @COL_GUI_NAME: Product ID
+  -- @COL_DESC: Product ID
+  -- @COL_DISPLAY_ORDER: 6
+  -- @COL_PK: Y
+  "PRODUCT_ID" VARCHAR2(20 BYTE),
+  -- @COL_GUI_NAME: Product Name
+  -- @COL_DESC: Product Name
+  -- @COL_DISPLAY_ORDER: 7
+  "PRODUCT_NAME" VARCHAR2(150 BYTE),
+  -- @COL_GUI_NAME: Valid from
+  -- @COL_DESC: Valid from
+  -- @COL_DISPLAY_ORDER: 8
+  -- @COL_PK: Y
+  -- @COL_FORMAT: dd.MM.yyyy
+  "VALID_FROM" DATE,
+  -- @COL_GUI_NAME: Valid to
+  -- @COL_DESC: Valid to
+  -- @COL_DISPLAY_ORDER: 9
+  -- @COL_FORMAT: dd.MM.yyyy
+  "VALID_TO" DATE,
+  "ITS" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) TABLESPACE XMDM_FACT;
