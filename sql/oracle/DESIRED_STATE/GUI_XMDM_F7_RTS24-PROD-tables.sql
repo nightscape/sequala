@@ -1,0 +1,40 @@
+-- @TBL_GUI_NAME: RTS Scheduling
+-- @TBL_GUI_NAME_SHORT: RTS_24_SCHEDULING
+-- @TBL_NAME_AT: S_SCHEDULING_PARAMS_AT
+-- @TBL_DISPLAY_ORDER: 1
+CREATE TABLE "GUI_XMDM_F7_RTS24"."S_SCHEDULING_PARAMS" (
+  -- @COL_GUI_NAME: Exchange code
+  -- @COL_DISPLAY_ORDER: 1
+  -- @COL_PK: Y
+  -- @LKP_SQL_STMT1: select 't7_eex' as LABEL, 't7_eex' as VALUE from dual
+  -- @LKP_SQL_LABEL: LABEL
+  -- @LKP_SQL_VALUE: VALUE
+  "EXCHANGE_CODE" VARCHAR2(15 CHAR) NOT NULL,
+  -- @COL_GUI_NAME: Start processing
+  -- @COL_DISPLAY_ORDER: 2
+  -- @COL_PK: Y
+  -- @COL_FORMAT: dd.MM.yyyy
+  "START_DATE" DATE NOT NULL,
+  -- @COL_GUI_NAME: End processing
+  -- @COL_DISPLAY_ORDER: 3
+  -- @COL_PK: Y
+  -- @COL_FORMAT: dd.MM.yyyy
+  "END_DATE" DATE NOT NULL,
+  -- @COL_GUI_NAME: Product business id
+  -- @COL_DESC: Product business id. N/A if unavailable
+  -- @COL_DISPLAY_ORDER: 4
+  -- @COL_PK: Y
+  "PRODUCT_BUS_ID" VARCHAR2(20 CHAR),
+  -- @COL_GUI_NAME: Member business id
+  -- @COL_DESC: Member business id. N/A if unavailable
+  -- @COL_DISPLAY_ORDER: 5
+  "MEMBER_BUS_ID" VARCHAR2(20 CHAR),
+  -- @COL_GUI_NAME: Result status
+  -- @COL_DESC: Please leave empty. Will be filled by rts24scheduler
+  -- @COL_DISPLAY_ORDER: 6
+  -- @LKP_SQL_STMT1: select 'SCHEDULED' as LABEL, 'SCHEDULED' as VALUE from dual UNION ALL select 'IN_PROGRESS' as LABEL, 'IN_PROGRESS' as VALUE from dual UNION ALL select 'SUCCEEDED' as LABEL, 'SUCCEEDED' as VALUE from dual UNION ALL select 'FAILED' as LABEL, 'FAILED' as VALUE from dual
+  -- @LKP_SQL_LABEL: LABEL
+  -- @LKP_SQL_VALUE: VALUE
+  "RESULT_STATUS" VARCHAR2(50 CHAR),
+  "ITS" DATE DEFAULT SYSDATE
+) TABLESPACE XMDM_FACT;

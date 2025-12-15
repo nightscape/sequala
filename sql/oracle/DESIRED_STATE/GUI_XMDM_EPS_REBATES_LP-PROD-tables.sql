@@ -1,0 +1,827 @@
+-- @TBL_GUI_NAME: LP Lists
+-- @TBL_GUI_NAME_SHORT: LP Lists
+-- @TBL_NAME_AT: LP_LISTS_AT
+-- @TBL_DISPLAY_ORDER: 3
+CREATE TABLE "GUI_XMDM_EPS_REBATES_LP"."LP_LISTS" (
+  -- @COL_GUI_NAME: MMR List
+  -- @COL_DESC: MMR List
+  -- @COL_DISPLAY_ORDER: 1
+  -- @COL_PK: Y
+  "MMRLIST" VARCHAR2(60 BYTE),
+  -- @COL_GUI_NAME: Remarks
+  -- @COL_DESC: Remarks
+  -- @COL_DISPLAY_ORDER: 2
+  "REMARKS" VARCHAR2(150 BYTE),
+  "ITS" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) TABLESPACE XMDM_FACT;
+-- @TBL_GUI_NAME: LP List to Scenario Assignm
+-- @TBL_GUI_NAME_SHORT: LP List to Scenario Assignm
+-- @TBL_NAME_AT: LP_LIST_SCENARIO_ASSIGNM_AT
+-- @TBL_DISPLAY_ORDER: 4
+CREATE TABLE "GUI_XMDM_EPS_REBATES_LP"."LP_LIST_SCENARIO_ASSIGNM" (
+  -- @COL_GUI_NAME: Scenario Name
+  -- @COL_DESC: Scenario Name
+  -- @COL_DISPLAY_ORDER: 1
+  -- @COL_PK: Y
+  "SCENARIO_NAME" VARCHAR2(100 BYTE),
+  -- @COL_GUI_NAME: Start Date
+  -- @COL_DESC: Start Date
+  -- @COL_DISPLAY_ORDER: 2
+  -- @COL_PK: Y
+  -- @COL_FORMAT: dd.MM.yyyy
+  "START_DATE" DATE,
+  -- @COL_GUI_NAME: End Date
+  -- @COL_DESC: End Date
+  -- @COL_DISPLAY_ORDER: 3
+  -- @COL_FORMAT: dd.MM.yyyy
+  "END_DATE" DATE,
+  -- @COL_GUI_NAME: Service
+  -- @COL_DESC: Service
+  -- @COL_DISPLAY_ORDER: 4
+  -- @COL_PK: Y
+  "SERVICE" VARCHAR2(50 BYTE),
+  -- @COL_GUI_NAME: Route
+  -- @COL_DESC: Route
+  -- @COL_DISPLAY_ORDER: 5
+  -- @COL_PK: Y
+  "ROUTE" VARCHAR2(50 BYTE),
+  -- @COL_GUI_NAME: Execution Type
+  -- @COL_DESC: Execution Type
+  -- @COL_DISPLAY_ORDER: 6
+  -- @COL_PK: Y
+  "EXECTYPE" VARCHAR2(10 BYTE),
+  -- @COL_GUI_NAME: Priority
+  -- @COL_DESC: Priority
+  -- @COL_DISPLAY_ORDER: 7
+  -- @COL_PK: Y
+  -- @COL_FORMAT: #
+  "PRIORITY" NUMBER(*, 0),
+  -- @COL_GUI_NAME: VP Preformed
+  -- @COL_DESC: VP Preformed
+  -- @COL_DISPLAY_ORDER: 8
+  -- @COL_FORMAT: #
+  "VP_PERFORMED" NUMBER(*, 0),
+  -- @COL_GUI_NAME: No TakeUp
+  -- @COL_DESC: No TakeUp
+  -- @COL_DISPLAY_ORDER: 9
+  -- @COL_FORMAT: #
+  "NO_TAKEUP" NUMBER(*, 0),
+  -- @COL_GUI_NAME: No Member Circle
+  -- @COL_DESC: No Member Circle
+  -- @COL_DISPLAY_ORDER: 10
+  -- @COL_FORMAT: #
+  "NO_MEMBER_CIRCLE" NUMBER(*, 0),
+  -- @COL_GUI_NAME: Grace Strategy
+  -- @COL_DESC: Grace Strategy
+  -- @COL_DISPLAY_ORDER: 11
+  -- @COL_FORMAT: #
+  "GRACE_STRATEGY" NUMBER(*, 0),
+  -- @COL_GUI_NAME: MMR List
+  -- @COL_DESC: MMR List
+  -- @COL_DISPLAY_ORDER: 12
+  -- @COL_PK: Y
+  "MMRLIST" VARCHAR2(60 BYTE),
+  -- @COL_GUI_NAME: Remarks
+  -- @COL_DESC: Remarks
+  -- @COL_DISPLAY_ORDER: 13
+  "REMARKS" VARCHAR2(150 BYTE),
+  "ITS" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) TABLESPACE XMDM_FACT;
+-- @TBL_GUI_NAME: Members Level2
+-- @TBL_GUI_NAME_SHORT: Members Level2
+-- @TBL_NAME_AT: MEMBERS_LEVEL2_AT
+-- @TBL_DISPLAY_ORDER: 11
+CREATE TABLE "GUI_XMDM_EPS_REBATES_LP"."MEMBERS_LEVEL2" (
+  -- @COL_GUI_NAME: Package ID
+  -- @COL_DESC: Package ID
+  -- @COL_DISPLAY_ORDER: 1
+  -- @COL_PK: Y
+  "PACKAGE_ID" VARCHAR2(20 BYTE),
+  -- @COL_GUI_NAME: Percent Definition
+  -- @COL_DESC: Percent Definition
+  -- @COL_DISPLAY_ORDER: 2
+  -- @COL_PK: Y
+  "PERCENT_DEFINITION" VARCHAR2(70 BYTE),
+  -- @COL_GUI_NAME: Member ID
+  -- @COL_DESC: Member ID
+  -- @COL_DISPLAY_ORDER: 3
+  -- @COL_PK: Y
+  "MEMBER_ID" VARCHAR2(50 BYTE),
+  -- @COL_GUI_NAME: Valid From
+  -- @COL_DESC: Valid From
+  -- @COL_DISPLAY_ORDER: 4
+  -- @COL_PK: Y
+  -- @COL_FORMAT: dd.MM.yyyy
+  "VALID_FROM" DATE,
+  -- @COL_GUI_NAME: Valid To
+  -- @COL_DESC: Valid To
+  -- @COL_DISPLAY_ORDER: 5
+  -- @COL_FORMAT: dd.MM.yyyy
+  "VALID_TO" DATE,
+  "ITS" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) TABLESPACE XMDM_FACT;
+-- @TBL_GUI_NAME: no Requirement for Product
+-- @TBL_GUI_NAME_SHORT: no Requirement for Product
+-- @TBL_NAME_AT: NO_REQMT_FOR_PRODUCT_AT
+-- @TBL_DISPLAY_ORDER: 15
+CREATE TABLE "GUI_XMDM_EPS_REBATES_LP"."NO_REQMT_FOR_PRODUCT" (
+  -- @COL_GUI_NAME: Package ID
+  -- @COL_DESC: Package ID
+  -- @COL_DISPLAY_ORDER: 1
+  -- @COL_PK: Y
+  "PACKAGE_ID" VARCHAR2(20 BYTE),
+  -- @COL_GUI_NAME: Performance Definition
+  -- @COL_DESC: Performance Definition
+  -- @COL_DISPLAY_ORDER: 2
+  -- @COL_PK: Y
+  "PERFORMANCE_DEFINITION" VARCHAR2(50 BYTE),
+  -- @COL_GUI_NAME: Product ID
+  -- @COL_DESC: Product ID
+  -- @COL_DISPLAY_ORDER: 3
+  -- @COL_PK: Y
+  "PRODUCT_ID" VARCHAR2(20 BYTE),
+  -- @COL_GUI_NAME: Product Name
+  -- @COL_DESC: Product Name
+  -- @COL_DISPLAY_ORDER: 4
+  "PRODUCT_NAME" VARCHAR2(150 BYTE),
+  -- @COL_GUI_NAME: Quot Type
+  -- @COL_DESC: Quot Type
+  -- @COL_DISPLAY_ORDER: 5
+  -- @COL_PK: Y
+  "QUOT_TYPE" VARCHAR2(10 BYTE),
+  -- @COL_GUI_NAME: Start Date
+  -- @COL_DESC: Start Date
+  -- @COL_DISPLAY_ORDER: 6
+  -- @COL_PK: Y
+  -- @COL_FORMAT: dd.MM.yyyy
+  "START_DATE" DATE,
+  -- @COL_GUI_NAME: End Date
+  -- @COL_DESC: End Date
+  -- @COL_DISPLAY_ORDER: 7
+  -- @COL_FORMAT: dd.MM.yyyy
+  "END_DATE" DATE,
+  -- @COL_GUI_NAME: Own Rebate
+  -- @COL_DESC: Own Rebate
+  -- @COL_DISPLAY_ORDER: 8
+  -- @COL_FORMAT: #
+  "OWN_REBATE" NUMBER(*, 0),
+  "ITS" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) TABLESPACE XMDM_FACT;
+-- @TBL_GUI_NAME: Packages
+-- @TBL_GUI_NAME_SHORT: Packages
+-- @TBL_NAME_AT: PACKAGES_AT
+-- @TBL_DISPLAY_ORDER: 1
+CREATE TABLE "GUI_XMDM_EPS_REBATES_LP"."PACKAGES" (
+  -- @COL_GUI_NAME: Package ID
+  -- @COL_DESC: Package ID
+  -- @COL_DISPLAY_ORDER: 1
+  -- @COL_PK: Y
+  "PACKAGE_ID" VARCHAR2(20 BYTE),
+  -- @COL_GUI_NAME: Product ID
+  -- @COL_DESC: Product ID
+  -- @COL_DISPLAY_ORDER: 3
+  -- @COL_PK: Y
+  "PRODUCT_ID" VARCHAR2(10 BYTE),
+  -- @COL_GUI_NAME: Start Date
+  -- @COL_DESC: Start Date
+  -- @COL_DISPLAY_ORDER: 4
+  -- @COL_PK: Y
+  -- @COL_FORMAT: dd.MM.yyyy
+  "START_DATE" DATE,
+  -- @COL_GUI_NAME: End Date
+  -- @COL_DESC: End Date
+  -- @COL_DISPLAY_ORDER: 5
+  -- @COL_FORMAT: dd.MM.yyyy
+  "END_DATE" DATE,
+  "ITS" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  -- @COL_GUI_NAME: Is Primary flag
+  -- @COL_DESC: Primary flag 0 - non primary, 1 - primary, *
+  -- @COL_DISPLAY_ORDER: 2
+  "IS_PRIMARY" CHAR(1 BYTE)
+) TABLESPACE XMDM_FACT;
+-- @TBL_GUI_NAME: Packages Strategy
+-- @TBL_GUI_NAME_SHORT: Packages Strategy
+-- @TBL_NAME_AT: PACKAGES_STRATEGY_AT
+-- @TBL_DISPLAY_ORDER: 2
+CREATE TABLE "GUI_XMDM_EPS_REBATES_LP"."PACKAGES_STRATEGY" (
+  -- @COL_GUI_NAME: Package ID
+  -- @COL_DESC: Package ID
+  -- @COL_DISPLAY_ORDER: 1
+  -- @COL_PK: Y
+  "PACKAGE_ID" VARCHAR2(20 BYTE),
+  -- @COL_GUI_NAME: Product ID
+  -- @COL_DESC: Product ID
+  -- @COL_DISPLAY_ORDER: 2
+  -- @COL_PK: Y
+  "PRODUCT_ID" VARCHAR2(10 BYTE),
+  -- @COL_GUI_NAME: Start Date
+  -- @COL_DESC: Start Date
+  -- @COL_DISPLAY_ORDER: 3
+  -- @COL_PK: Y
+  -- @COL_FORMAT: dd.MM.yyyy
+  "START_DATE" DATE,
+  -- @COL_GUI_NAME: End Date
+  -- @COL_DESC: End Date
+  -- @COL_DISPLAY_ORDER: 4
+  -- @COL_FORMAT: dd.MM.yyyy
+  "END_DATE" DATE,
+  "ITS" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) TABLESPACE XMDM_FACT;
+-- @TBL_GUI_NAME: Params ABB
+-- @TBL_GUI_NAME_SHORT: Params ABB
+-- @TBL_NAME_AT: PARAMS_ABB_AT
+-- @TBL_DISPLAY_ORDER: 9
+CREATE TABLE "GUI_XMDM_EPS_REBATES_LP"."PARAMS_ABB" (
+  -- @COL_GUI_NAME: Package ID
+  -- @COL_DESC: Package ID
+  -- @COL_DISPLAY_ORDER: 1
+  -- @COL_PK: Y
+  "PACKAGE_ID" VARCHAR2(20 BYTE),
+  -- @COL_GUI_NAME: Product ID
+  -- @COL_DESC: Product ID
+  -- @COL_DISPLAY_ORDER: 2
+  -- @COL_PK: Y
+  "PRODUCT_ID" VARCHAR2(10 BYTE),
+  -- @COL_GUI_NAME: Max Rebate
+  -- @COL_DESC: Max Rebate
+  -- @COL_DISPLAY_ORDER: 3
+  -- @COL_FORMAT: 0.##
+  "MAX_REBATE" NUMBER,
+  -- @COL_GUI_NAME: Max Spread Rebate
+  -- @COL_DESC: Max Spread Rebate
+  -- @COL_DISPLAY_ORDER: 4
+  -- @COL_FORMAT: 0.##
+  "MAX_SPREAD_REBATE" NUMBER,
+  -- @COL_GUI_NAME: Max Size Rebate
+  -- @COL_DESC: Max Size Rebate
+  -- @COL_DISPLAY_ORDER: 5
+  -- @COL_FORMAT: 0.##
+  "MAX_SIZE_REBATE" NUMBER,
+  -- @COL_GUI_NAME: Spread Factor
+  -- @COL_DESC: Spread Factor
+  -- @COL_DISPLAY_ORDER: 6
+  -- @COL_FORMAT: 0.###
+  "SPREAD_FACTOR" NUMBER,
+  -- @COL_GUI_NAME: Size Factor
+  -- @COL_DESC: Size Factor
+  -- @COL_DISPLAY_ORDER: 7
+  -- @COL_FORMAT: 0.###
+  "SIZE_FACTOR" NUMBER,
+  -- @COL_GUI_NAME: Basis Required Flag
+  -- @COL_DESC: Basis Required Flag
+  -- @COL_DISPLAY_ORDER: 8
+  "BASIS_REQUIRED_FLAG" CHAR(1 BYTE),
+  -- @COL_GUI_NAME: Coverage Filter
+  -- @COL_DESC: Coverage Filter
+  -- @COL_DISPLAY_ORDER: 9
+  "COVERAGE_FILTER" CHAR(1 BYTE),
+  "ITS" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) TABLESPACE XMDM_FACT;
+-- @TBL_GUI_NAME: Percents(global)
+-- @TBL_GUI_NAME_SHORT: Percents(global)
+-- @TBL_NAME_AT: PERCENTS_GLOBAL_AT
+-- @TBL_DISPLAY_ORDER: 7
+CREATE TABLE "GUI_XMDM_EPS_REBATES_LP"."PERCENTS_GLOBAL" (
+  -- @COL_GUI_NAME: Package ID
+  -- @COL_DESC: Package ID
+  -- @COL_DISPLAY_ORDER: 1
+  -- @COL_PK: Y
+  "PACKAGE_ID" VARCHAR2(20 BYTE),
+  -- @COL_GUI_NAME: Percent Definition
+  -- @COL_DESC: Percent Definition
+  -- @COL_DISPLAY_ORDER: 2
+  -- @COL_PK: Y
+  "PERCENT_DEFINITION" VARCHAR2(70 BYTE),
+  -- @COL_GUI_NAME: Pricetype ID
+  -- @COL_DESC: Pricetype ID
+  -- @COL_DISPLAY_ORDER: 3
+  -- @COL_PK: Y
+  "PRICETYPE_ID" VARCHAR2(3 BYTE),
+  -- @COL_GUI_NAME: Rebate
+  -- @COL_DESC: Rebate
+  -- @COL_DISPLAY_ORDER: 4
+  -- @COL_FORMAT: #
+  "REBATE" NUMBER(*, 0),
+  -- @COL_GUI_NAME: Strategy Rebate
+  -- @COL_DESC: Strategy Rebate
+  -- @COL_DISPLAY_ORDER: 5
+  -- @COL_FORMAT: #
+  "STRATEGY_REBATE" NUMBER(*, 0),
+  -- @COL_GUI_NAME: Rebate2
+  -- @COL_DESC: Rebate2
+  -- @COL_DISPLAY_ORDER: 6
+  -- @COL_FORMAT: #
+  "REBATE2" NUMBER(*, 0),
+  -- @COL_GUI_NAME: Strategy Rebate2
+  -- @COL_DESC: Strategy Rebate2
+  -- @COL_DISPLAY_ORDER: 7
+  -- @COL_FORMAT: #
+  "STRATEGY_REBATE2" NUMBER(*, 0),
+  -- @COL_GUI_NAME: Basic Flag
+  -- @COL_DESC: Basic Flag
+  -- @COL_DISPLAY_ORDER: 8
+  -- @COL_FORMAT: #
+  "BASIC_FLAG" NUMBER(*, 0),
+  -- @COL_GUI_NAME: Full Package Flag
+  -- @COL_DESC: Full Package Flag
+  -- @COL_DISPLAY_ORDER: 9
+  -- @COL_FORMAT: #
+  "FULL_PACKAGE_FLAG" NUMBER(*, 0),
+  "ITS" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) TABLESPACE XMDM_FACT;
+-- @TBL_GUI_NAME: Percents(LqC)
+-- @TBL_GUI_NAME_SHORT: Percents(LqC)
+-- @TBL_NAME_AT: PERCENTS_LQC_AT
+-- @TBL_DISPLAY_ORDER: 8
+CREATE TABLE "GUI_XMDM_EPS_REBATES_LP"."PERCENTS_LQC" (
+  -- @COL_GUI_NAME: Package ID
+  -- @COL_DESC: Package ID
+  -- @COL_DISPLAY_ORDER: 1
+  -- @COL_PK: Y
+  "PACKAGE_ID" VARCHAR2(20 BYTE),
+  -- @COL_GUI_NAME: Percent Definition
+  -- @COL_DESC: Percent Definition
+  -- @COL_DISPLAY_ORDER: 2
+  -- @COL_PK: Y
+  "PERCENT_DEFINITION" VARCHAR2(70 BYTE),
+  -- @COL_GUI_NAME: Pricetype ID
+  -- @COL_DESC: Pricetype ID
+  -- @COL_DISPLAY_ORDER: 3
+  -- @COL_PK: Y
+  "PRICETYPE_ID" VARCHAR2(3 BYTE),
+  -- @COL_GUI_NAME: LQ Class
+  -- @COL_DESC: LQ Class
+  -- @COL_DISPLAY_ORDER: 4
+  -- @COL_PK: Y
+  -- @COL_FORMAT: #
+  "LQ_CLASS" NUMBER(*, 0),
+  -- @COL_GUI_NAME: Rebate
+  -- @COL_DESC: Rebate
+  -- @COL_DISPLAY_ORDER: 5
+  -- @COL_FORMAT: #
+  "REBATE" NUMBER(*, 0),
+  -- @COL_GUI_NAME: Strategy Rebate
+  -- @COL_DESC: Strategy Rebate
+  -- @COL_DISPLAY_ORDER: 6
+  -- @COL_FORMAT: #
+  "STRATEGY_REBATE" NUMBER(*, 0),
+  -- @COL_GUI_NAME: Rebate2
+  -- @COL_DESC: Rebate2
+  -- @COL_DISPLAY_ORDER: 7
+  -- @COL_FORMAT: #
+  "REBATE2" NUMBER(*, 0),
+  -- @COL_GUI_NAME: Strategy Rebate2
+  -- @COL_DESC: Strategy Rebate2
+  -- @COL_DISPLAY_ORDER: 8
+  -- @COL_FORMAT: #
+  "STRATEGY_REBATE2" NUMBER(*, 0),
+  "ITS" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) TABLESPACE XMDM_FACT;
+-- @TBL_GUI_NAME: Percents(product)
+-- @TBL_GUI_NAME_SHORT: Percents(product)
+-- @TBL_NAME_AT: PERCENTS_PRODUCT_AT
+-- @TBL_DISPLAY_ORDER: 10
+CREATE TABLE "GUI_XMDM_EPS_REBATES_LP"."PERCENTS_PRODUCT" (
+  -- @COL_GUI_NAME: Package ID
+  -- @COL_DESC: Package ID
+  -- @COL_DISPLAY_ORDER: 1
+  -- @COL_PK: Y
+  "PACKAGE_ID" VARCHAR2(20 BYTE),
+  -- @COL_GUI_NAME: Percent Definition
+  -- @COL_DESC: Percent Definition
+  -- @COL_DISPLAY_ORDER: 2
+  -- @COL_PK: Y
+  "PERCENT_DEFINITION" VARCHAR2(70 BYTE),
+  -- @COL_GUI_NAME: Product ID
+  -- @COL_DESC: Product ID
+  -- @COL_DISPLAY_ORDER: 3
+  -- @COL_PK: Y
+  "PRODUCT_ID" VARCHAR2(20 BYTE),
+  -- @COL_GUI_NAME: Product Name
+  -- @COL_DESC: Product Name
+  -- @COL_DISPLAY_ORDER: 4
+  "PRODUCT_NAME" VARCHAR2(150 BYTE),
+  -- @COL_GUI_NAME: Pricetype ID
+  -- @COL_DESC: Pricetype ID
+  -- @COL_DISPLAY_ORDER: 5
+  -- @COL_PK: Y
+  "PRICETYPE_ID" VARCHAR2(3 BYTE),
+  -- @COL_GUI_NAME: Rebate
+  -- @COL_DESC: Rebate
+  -- @COL_DISPLAY_ORDER: 6
+  -- @COL_FORMAT: #
+  "REBATE" NUMBER(*, 0),
+  -- @COL_GUI_NAME: Strategy Rebate
+  -- @COL_DESC: Strategy Rebate
+  -- @COL_DISPLAY_ORDER: 7
+  -- @COL_FORMAT: #
+  "STRATEGY_REBATE" NUMBER(*, 0),
+  -- @COL_GUI_NAME: Rebate2
+  -- @COL_DESC: Rebate2
+  -- @COL_DISPLAY_ORDER: 8
+  -- @COL_FORMAT: #
+  "REBATE2" NUMBER(*, 0),
+  -- @COL_GUI_NAME: Strategy Rebate2
+  -- @COL_DESC: Strategy Rebate2
+  -- @COL_DISPLAY_ORDER: 9
+  -- @COL_FORMAT: #
+  "STRATEGY_REBATE2" NUMBER(*, 0),
+  "ITS" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) TABLESPACE XMDM_FACT;
+-- @TBL_GUI_NAME: Price Definitions
+-- @TBL_GUI_NAME_SHORT: Price Definitions
+-- @TBL_NAME_AT: PRICE_DEFINITIONS_AT
+-- @TBL_DISPLAY_ORDER: 6
+CREATE TABLE "GUI_XMDM_EPS_REBATES_LP"."PRICE_DEFINITIONS" (
+  -- @COL_GUI_NAME: Package ID
+  -- @COL_DESC: Package ID
+  -- @COL_DISPLAY_ORDER: 1
+  -- @COL_PK: Y
+  "PACKAGE_ID" VARCHAR2(20 BYTE),
+  -- @COL_GUI_NAME: Price Definition
+  -- @COL_DESC: Price Definition
+  -- @COL_DISPLAY_ORDER: 2
+  -- @COL_PK: Y
+  "PRICE_DEFINITION" VARCHAR2(120 BYTE),
+  -- @COL_GUI_NAME: Program Type
+  -- @COL_DESC: Program Type
+  -- @COL_DISPLAY_ORDER: 3
+  "PROGRAMTYPE" VARCHAR2(3 BYTE),
+  -- @COL_GUI_NAME: Remarks
+  -- @COL_DESC: Remarks
+  -- @COL_DISPLAY_ORDER: 4
+  "REMARKS" VARCHAR2(150 BYTE),
+  -- @COL_GUI_NAME: Performance Definition
+  -- @COL_DESC: Performance Definition
+  -- @COL_DISPLAY_ORDER: 5
+  "PERFORMANCE_DEFINITION" VARCHAR2(50 BYTE),
+  -- @COL_GUI_NAME: Percent Definition
+  -- @COL_DESC: Percent Definition
+  -- @COL_DISPLAY_ORDER: 6
+  "PERCENT_DEFINITION" VARCHAR2(70 BYTE),
+  -- @COL_GUI_NAME: Percent Any Flag
+  -- @COL_DESC: Percent Any Flag
+  -- @COL_DISPLAY_ORDER: 7
+  -- @COL_FORMAT: #
+  "PERCENT_ANY_FLAG" NUMBER(*, 0),
+  "ITS" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  -- @COL_GUI_NAME: Package ID percent definition
+  -- @COL_DESC: Package ID percent definition
+  -- @COL_DISPLAY_ORDER: 8
+  "PACKAGE_ID_PERCENT_DEFINITION" VARCHAR2(70 BYTE)
+) TABLESPACE XMDM_FACT;
+-- @TBL_GUI_NAME: Assigng Price Def to LP List
+-- @TBL_GUI_NAME_SHORT: Assigng Price Def to LP List
+-- @TBL_NAME_AT: PRICE_DEF_LP_LIST_ASSIGNM_AT
+-- @TBL_DISPLAY_ORDER: 5
+CREATE TABLE "GUI_XMDM_EPS_REBATES_LP"."PRICE_DEF_LP_LIST_ASSIGNM" (
+  -- @COL_GUI_NAME: MMR List
+  -- @COL_DESC: MMR List
+  -- @COL_DISPLAY_ORDER: 1
+  -- @COL_PK: Y
+  "MMRLIST" VARCHAR2(60 BYTE),
+  -- @COL_GUI_NAME: Package ID
+  -- @COL_DESC: Package ID
+  -- @COL_DISPLAY_ORDER: 2
+  -- @COL_PK: Y
+  "PACKAGE_ID" VARCHAR2(20 BYTE),
+  -- @COL_GUI_NAME: MM Factor
+  -- @COL_DESC: MM Factor
+  -- @COL_DISPLAY_ORDER: 3
+  -- @COL_FORMAT: #
+  "MM_FACTOR" NUMBER(*, 0),
+  -- @COL_GUI_NAME: TR28
+  -- @COL_DESC: TR28
+  -- @COL_DISPLAY_ORDER: 4
+  -- @COL_FORMAT: #
+  "TR28" NUMBER(*, 0),
+  -- @COL_GUI_NAME: Volume Rebate Over Limit
+  -- @COL_DESC: Volume Rebate Over Limit
+  -- @COL_DISPLAY_ORDER: 5
+  -- @COL_FORMAT: #
+  "VREBATE_OVER_LIMIT" NUMBER(*, 0),
+  -- @COL_GUI_NAME: Session Name
+  -- @COL_DESC: Session Name
+  -- @COL_DISPLAY_ORDER: 6
+  -- @COL_PK: Y
+  "SESSION_NAME" VARCHAR2(10 BYTE),
+  -- @COL_GUI_NAME: Subtype
+  -- @COL_DESC: Subtype
+  -- @COL_DISPLAY_ORDER: 7
+  -- @COL_PK: Y
+  "SUBTYPE" VARCHAR2(30 BYTE),
+  -- @COL_GUI_NAME: Price Definition
+  -- @COL_DESC: Price Definition
+  -- @COL_DISPLAY_ORDER: 8
+  "PRICE_DEFINITION" VARCHAR2(120 BYTE),
+  "ITS" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) TABLESPACE XMDM_FACT;
+-- @TBL_GUI_NAME: Products for TakeUp28
+-- @TBL_GUI_NAME_SHORT: Products for TakeUp28
+-- @TBL_NAME_AT: PRODUCTS_FOR_TAKEUP28_AT
+-- @TBL_DISPLAY_ORDER: 12
+CREATE TABLE "GUI_XMDM_EPS_REBATES_LP"."PRODUCTS_FOR_TAKEUP28" (
+  -- @COL_GUI_NAME: Package ID
+  -- @COL_DESC: Package ID
+  -- @COL_DISPLAY_ORDER: 1
+  -- @COL_PK: Y
+  "PACKAGE_ID" VARCHAR2(20 BYTE),
+  -- @COL_GUI_NAME: Percent Definition
+  -- @COL_DESC: Percent Definition
+  -- @COL_DISPLAY_ORDER: 2
+  -- @COL_PK: Y
+  "PERCENT_DEFINITION" VARCHAR2(70 BYTE),
+  -- @COL_GUI_NAME: Product ID
+  -- @COL_DESC: Product ID
+  -- @COL_DISPLAY_ORDER: 3
+  -- @COL_PK: Y
+  "PRODUCT_ID" VARCHAR2(20 BYTE),
+  -- @COL_GUI_NAME: Product Name
+  -- @COL_DESC: Product Name
+  -- @COL_DISPLAY_ORDER: 4
+  "PRODUCT_NAME" VARCHAR2(150 BYTE),
+  -- @COL_GUI_NAME: Valid From
+  -- @COL_DESC: Valid From
+  -- @COL_DISPLAY_ORDER: 5
+  -- @COL_FORMAT: dd.MM.yyyy
+  "VALID_FROM" DATE,
+  -- @COL_GUI_NAME: Valid To
+  -- @COL_DESC: Valid To
+  -- @COL_DISPLAY_ORDER: 6
+  -- @COL_FORMAT: dd.MM.yyyy
+  "VALID_TO" DATE,
+  "ITS" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) TABLESPACE XMDM_FACT;
+-- @TBL_GUI_NAME: Requirement Mandatory Products
+-- @TBL_GUI_NAME_SHORT: Requirement Mandatory Products
+-- @TBL_NAME_AT: REQMT_MANDATORY_PRODUCTS_AT
+-- @TBL_DISPLAY_ORDER: 19
+CREATE TABLE "GUI_XMDM_EPS_REBATES_LP"."REQMT_MANDATORY_PRODUCTS" (
+  -- @COL_GUI_NAME: Package ID
+  -- @COL_DESC: Package ID
+  -- @COL_DISPLAY_ORDER: 1
+  -- @COL_PK: Y
+  "PACKAGE_ID" VARCHAR2(20 BYTE),
+  -- @COL_GUI_NAME: Performance Definition
+  -- @COL_DESC: Performance Definition
+  -- @COL_DISPLAY_ORDER: 2
+  -- @COL_PK: Y
+  "PERFORMANCE_DEFINITION" VARCHAR2(50 BYTE),
+  -- @COL_GUI_NAME: Product ID
+  -- @COL_DESC: Product ID
+  -- @COL_DISPLAY_ORDER: 3
+  -- @COL_PK: Y
+  "PRODUCT_ID" VARCHAR2(20 BYTE),
+  -- @COL_GUI_NAME: Product Name
+  -- @COL_DESC: Product Name
+  -- @COL_DISPLAY_ORDER: 4
+  "PRODUCT_NAME" VARCHAR2(150 BYTE),
+  -- @COL_GUI_NAME: Start Date
+  -- @COL_DESC: Start Date
+  -- @COL_DISPLAY_ORDER: 5
+  -- @COL_PK: Y
+  -- @COL_FORMAT: dd.MM.yyyy
+  "START_DATE" DATE,
+  -- @COL_GUI_NAME: End Date
+  -- @COL_DESC: End Date
+  -- @COL_DISPLAY_ORDER: 6
+  -- @COL_FORMAT: dd.MM.yyyy
+  "END_DATE" DATE,
+  -- @COL_GUI_NAME: Altern. Mandatory Ind.
+  -- @COL_DESC: Altern. Mandatory Ind.
+  -- @COL_DISPLAY_ORDER: 7
+  "ALTERN_MANDATORY_IND" VARCHAR2(1 BYTE),
+  "ITS" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) TABLESPACE XMDM_FACT;
+-- @TBL_GUI_NAME: Requirement Product Thresholds
+-- @TBL_GUI_NAME_SHORT: Requirement Product Thresholds
+-- @TBL_NAME_AT: REQMT_PRODUCT_THRESHOLDS_AT
+-- @TBL_DISPLAY_ORDER: 14
+CREATE TABLE "GUI_XMDM_EPS_REBATES_LP"."REQMT_PRODUCT_THRESHOLDS" (
+  -- @COL_GUI_NAME: Package ID
+  -- @COL_DESC: Package ID
+  -- @COL_DISPLAY_ORDER: 1
+  -- @COL_PK: Y
+  "PACKAGE_ID" VARCHAR2(20 BYTE),
+  -- @COL_GUI_NAME: Performance Definition
+  -- @COL_DESC: Performance Definition
+  -- @COL_DISPLAY_ORDER: 2
+  -- @COL_PK: Y
+  "PERFORMANCE_DEFINITION" VARCHAR2(50 BYTE),
+  -- @COL_GUI_NAME: Product ID
+  -- @COL_DESC: Product ID
+  -- @COL_DISPLAY_ORDER: 3
+  -- @COL_PK: Y
+  "PRODUCT_ID" VARCHAR2(20 BYTE),
+  -- @COL_GUI_NAME: Product Name
+  -- @COL_DESC: Product name
+  -- @COL_DISPLAY_ORDER: 4
+  "PRODUCT_NAME" VARCHAR2(150 BYTE),
+  -- @COL_GUI_NAME: Quot Type
+  -- @COL_DESC: Quot Type
+  -- @COL_DISPLAY_ORDER: 5
+  -- @COL_PK: Y
+  "QUOT_TYPE" VARCHAR2(10 BYTE),
+  -- @COL_GUI_NAME: Start Date
+  -- @COL_DESC: Start Date
+  -- @COL_DISPLAY_ORDER: 6
+  -- @COL_PK: Y
+  -- @COL_FORMAT: dd.MM.yyyy
+  "START_DATE" DATE,
+  -- @COL_GUI_NAME: End Date
+  -- @COL_DESC: End Date
+  -- @COL_DISPLAY_ORDER: 7
+  -- @COL_FORMAT: dd.MM.yyyy
+  "END_DATE" DATE,
+  -- @COL_GUI_NAME: Own Rebate
+  -- @COL_DESC: Own Rebate
+  -- @COL_DISPLAY_ORDER: 8
+  -- @COL_FORMAT: #
+  "OWN_REBATE" NUMBER(*, 0),
+  -- @COL_GUI_NAME: Threshold
+  -- @COL_DESC: Threshold
+  -- @COL_DISPLAY_ORDER: 9
+  "THRESHOLD" NUMBER,
+  -- @COL_GUI_NAME: Min LP RFQ Per Month
+  -- @COL_DESC: Min LP RFQ Per Month
+  -- @COL_DISPLAY_ORDER: 10
+  "MIN_LP_RFQ_PER_MONTH" NUMBER(*, 0),
+  "ITS" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  -- @COL_GUI_NAME: QR Monthly floor limit
+  -- @COL_DESC: Quotation request monthly floor limit
+  -- @COL_DISPLAY_ORDER: 11
+  -- @COL_FORMAT: #
+  "QR_MONTHLY_FLOOR_LIMIT" NUMBER(*, 0)
+) TABLESPACE XMDM_FACT;
+-- @TBL_GUI_NAME: Requirement Product Violations
+-- @TBL_GUI_NAME_SHORT: Requirement Product Violations
+-- @TBL_NAME_AT: REQMT_PRODUCT_VIOLATIONS_AT
+-- @TBL_DISPLAY_ORDER: 18
+CREATE TABLE "GUI_XMDM_EPS_REBATES_LP"."REQMT_PRODUCT_VIOLATIONS" (
+  -- @COL_GUI_NAME: Package ID
+  -- @COL_DESC: Package ID
+  -- @COL_DISPLAY_ORDER: 1
+  -- @COL_PK: Y
+  "PACKAGE_ID" VARCHAR2(20 BYTE),
+  -- @COL_GUI_NAME: Performance Definition
+  -- @COL_DESC: Performance Definition
+  -- @COL_DISPLAY_ORDER: 2
+  -- @COL_PK: Y
+  "PERFORMANCE_DEFINITION" VARCHAR2(50 BYTE),
+  -- @COL_GUI_NAME: Start Date
+  -- @COL_DESC: Start Date
+  -- @COL_DISPLAY_ORDER: 3
+  -- @COL_PK: Y
+  -- @COL_FORMAT: dd.MM.yyyy
+  "START_DATE" DATE,
+  -- @COL_GUI_NAME: End Date
+  -- @COL_DESC: End Date
+  -- @COL_DISPLAY_ORDER: 4
+  -- @COL_FORMAT: dd.MM.yyyy
+  "END_DATE" DATE,
+  -- @COL_GUI_NAME: Nbr. Violations
+  -- @COL_DESC: Nbr. Violations
+  -- @COL_DISPLAY_ORDER: 5
+  -- @COL_FORMAT: #
+  "NBR_VIOLATIONS" NUMBER(*, 0),
+  "ITS" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) TABLESPACE XMDM_FACT;
+-- @TBL_GUI_NAME: Requirement Strat Product Thrsh
+-- @TBL_GUI_NAME_SHORT: Requirement Strat Product Thrsh
+-- @TBL_NAME_AT: REQMT_STRAT_PRODUCT_THRSH_AT
+-- @TBL_DISPLAY_ORDER: 17
+CREATE TABLE "GUI_XMDM_EPS_REBATES_LP"."REQMT_STRAT_PRODUCT_THRSH" (
+  -- @COL_GUI_NAME: Package ID
+  -- @COL_DESC: Package ID
+  -- @COL_DISPLAY_ORDER: 1
+  -- @COL_PK: Y
+  "PACKAGE_ID" VARCHAR2(20 BYTE),
+  -- @COL_GUI_NAME: Performance Definition
+  -- @COL_DESC: Performance Definition
+  -- @COL_DISPLAY_ORDER: 2
+  -- @COL_PK: Y
+  "PERFORMANCE_DEFINITION" VARCHAR2(50 BYTE),
+  -- @COL_GUI_NAME: Product ID
+  -- @COL_DESC: Product ID
+  -- @COL_DISPLAY_ORDER: 3
+  -- @COL_PK: Y
+  "PRODUCT_ID" VARCHAR2(20 BYTE),
+  -- @COL_GUI_NAME: Product Name
+  -- @COL_DESC: Product Name
+  -- @COL_DISPLAY_ORDER: 4
+  "PRODUCT_NAME" VARCHAR2(150 BYTE),
+  -- @COL_GUI_NAME: Start Date
+  -- @COL_DESC: Start Date
+  -- @COL_DISPLAY_ORDER: 5
+  -- @COL_PK: Y
+  -- @COL_FORMAT: dd.MM.yyyy
+  "START_DATE" DATE,
+  -- @COL_GUI_NAME: End Date
+  -- @COL_DESC: End Date
+  -- @COL_DISPLAY_ORDER: 6
+  -- @COL_FORMAT: dd.MM.yyyy
+  "END_DATE" DATE,
+  -- @COL_GUI_NAME: Threshold
+  -- @COL_DESC: Threshold
+  -- @COL_DISPLAY_ORDER: 7
+  "THRESHOLD" NUMBER,
+  -- @COL_GUI_NAME: QR Floor Limit
+  -- @COL_DESC: QR Floor Limit
+  -- @COL_DISPLAY_ORDER: 8
+  -- @COL_FORMAT: #
+  "QR_FLOOR_LIMIT" NUMBER(*, 0),
+  "ITS" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) TABLESPACE XMDM_FACT;
+-- @TBL_GUI_NAME: Requirement Strat Thresholds
+-- @TBL_GUI_NAME_SHORT: Requirement Strat Thresholds
+-- @TBL_NAME_AT: REQMT_STRAT_THRESHOLDS_AT
+-- @TBL_DISPLAY_ORDER: 16
+CREATE TABLE "GUI_XMDM_EPS_REBATES_LP"."REQMT_STRAT_THRESHOLDS" (
+  -- @COL_GUI_NAME: Package ID
+  -- @COL_DESC: Package ID
+  -- @COL_DISPLAY_ORDER: 1
+  -- @COL_PK: Y
+  "PACKAGE_ID" VARCHAR2(20 BYTE),
+  -- @COL_GUI_NAME: Performance Definition
+  -- @COL_DESC: Performance Definition
+  -- @COL_DISPLAY_ORDER: 2
+  -- @COL_PK: Y
+  "PERFORMANCE_DEFINITION" VARCHAR2(50 BYTE),
+  -- @COL_GUI_NAME: Start Date
+  -- @COL_DESC: Start Date
+  -- @COL_DISPLAY_ORDER: 3
+  -- @COL_PK: Y
+  -- @COL_FORMAT: dd.MM.yyyy
+  "START_DATE" DATE,
+  -- @COL_GUI_NAME: End Date
+  -- @COL_DESC: End Date
+  -- @COL_DISPLAY_ORDER: 4
+  -- @COL_FORMAT: dd.MM.yyyy
+  "END_DATE" DATE,
+  -- @COL_GUI_NAME: Threshold
+  -- @COL_DESC: Threshold
+  -- @COL_DISPLAY_ORDER: 5
+  "THRESHOLD" NUMBER,
+  -- @COL_GUI_NAME: QR Floor Limit
+  -- @COL_DESC: QR Floor Limit
+  -- @COL_DISPLAY_ORDER: 6
+  -- @COL_FORMAT: #
+  "QR_FLOOR_LIMIT" NUMBER(*, 0),
+  "ITS" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  -- @COL_GUI_NAME: Product name
+  -- @COL_DESC: Product name
+  -- @COL_DISPLAY_ORDER: 9
+  "PRODUCT_NAME" VARCHAR2(150 BYTE)
+) TABLESPACE XMDM_FACT;
+-- @TBL_GUI_NAME: Requirement Thresholds
+-- @TBL_GUI_NAME_SHORT: Requirement Thresholds
+-- @TBL_NAME_AT: REQMT_THRESHOLDS_AT
+-- @TBL_DISPLAY_ORDER: 13
+CREATE TABLE "GUI_XMDM_EPS_REBATES_LP"."REQMT_THRESHOLDS" (
+  -- @COL_GUI_NAME: Package ID
+  -- @COL_DESC: Package ID
+  -- @COL_DISPLAY_ORDER: 1
+  -- @COL_PK: Y
+  "PACKAGE_ID" VARCHAR2(20 BYTE),
+  -- @COL_GUI_NAME: Performance Definition
+  -- @COL_DESC: Performance Definition
+  -- @COL_DISPLAY_ORDER: 2
+  -- @COL_PK: Y
+  "PERFORMANCE_DEFINITION" VARCHAR2(50 BYTE),
+  -- @COL_GUI_NAME: Quot Type
+  -- @COL_DESC: Quot Type
+  -- @COL_DISPLAY_ORDER: 3
+  -- @COL_PK: Y
+  "QUOT_TYPE" VARCHAR2(10 BYTE),
+  -- @COL_GUI_NAME: Start Date
+  -- @COL_DESC: Start Date
+  -- @COL_DISPLAY_ORDER: 4
+  -- @COL_PK: Y
+  -- @COL_FORMAT: dd.MM.yyyy
+  "START_DATE" DATE,
+  -- @COL_GUI_NAME: End Date
+  -- @COL_DESC: End Date
+  -- @COL_DISPLAY_ORDER: 5
+  -- @COL_FORMAT: dd.MM.yyyy
+  "END_DATE" DATE,
+  -- @COL_GUI_NAME: Own Rebate
+  -- @COL_DESC: Own Rebate
+  -- @COL_DISPLAY_ORDER: 6
+  -- @COL_FORMAT: #
+  "OWN_REBATE" NUMBER(*, 0),
+  -- @COL_GUI_NAME: Threshold
+  -- @COL_DESC: Threshold
+  -- @COL_DISPLAY_ORDER: 7
+  "THRESHOLD" NUMBER,
+  -- @COL_GUI_NAME: Min LP RFQ Per Month
+  -- @COL_DESC: Min LP RFQ Per Month
+  -- @COL_DISPLAY_ORDER: 8
+  -- @COL_FORMAT: #
+  "MIN_LP_RFQ_PER_MONTH" NUMBER(*, 0),
+  -- @COL_GUI_NAME: QR Monthly Floor Limit
+  -- @COL_DESC: QR Monthly Floor Limit
+  -- @COL_DISPLAY_ORDER: 9
+  -- @COL_FORMAT: #
+  "QR_MONTHLY_FLOOR_LIMIT" NUMBER(*, 0),
+  "ITS" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) TABLESPACE XMDM_FACT;
