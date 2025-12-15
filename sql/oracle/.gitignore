@@ -1,0 +1,5 @@
+# Environment-specific configuration
+.env
+
+# Temporary state directories
+ROUNDTRIP_STATE/

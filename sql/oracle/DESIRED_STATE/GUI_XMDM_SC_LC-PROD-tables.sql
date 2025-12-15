@@ -1,0 +1,41 @@
+-- @TBL_GUI_NAME: Short / Long Code Tracking
+-- @TBL_GUI_NAME_SHORT: SHORT_LONG_CODE
+-- @TBL_NAME_AT: SHORT_LONG_CODE_AT
+-- @TBL_DISPLAY_ORDER: 1
+CREATE TABLE "GUI_XMDM_SC_LC"."SHORT_LONG_CODE" (
+  -- @COL_GUI_NAME: MIC Code
+  -- @COL_DESC: 4 Character Alphanumeric
+  -- @COL_DISPLAY_ORDER: 1
+  -- @COL_PK: Y
+  "MIC" VARCHAR2(4 BYTE) NOT NULL,
+  -- @COL_GUI_NAME: Member ID
+  -- @COL_DESC: 5 Character Alphanumeric
+  -- @COL_DISPLAY_ORDER: 2
+  -- @COL_PK: Y
+  "MEMBER_ID" VARCHAR2(5 BYTE) NOT NULL,
+  -- @COL_GUI_NAME: Short Code
+  -- @COL_DESC: 20 Digit Number
+  -- @COL_DISPLAY_ORDER: 3
+  -- @COL_PK: Y
+  -- @COL_FORMAT: #
+  -- @COL_VALIDATOR: de.deutsche_boerse.statistix.xmdm.validators.RegexColumnValidator:^[0-9]{1,20}$
+  "SHORTCODE" NUMBER(20, 0) NOT NULL,
+  -- @COL_GUI_NAME: Long Value
+  -- @COL_DESC: 35 Character Alphanumeric
+  -- @COL_DISPLAY_ORDER: 4
+  "LONGVALUE" VARCHAR2(35 BYTE) NOT NULL,
+  -- @COL_GUI_NAME: Valid From
+  -- @COL_DISPLAY_ORDER: 5
+  -- @COL_FORMAT: dd.MM.yyyy
+  "VALID_FROM" DATE NOT NULL,
+  -- @COL_GUI_NAME: Valid To
+  -- @COL_DISPLAY_ORDER: 6
+  -- @COL_FORMAT: dd.MM.yyyy
+  "VALID_TO" DATE NOT NULL,
+  -- @COL_GUI_NAME: Reason
+  -- @COL_DESC: 100 Character String
+  -- @COL_DISPLAY_ORDER: 7
+  "REASON" VARCHAR2(100 BYTE) NOT NULL,
+  "ITS" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT "PK_SHORT_LONG_CODE" PRIMARY KEY ("MIC", "MEMBER_ID", "SHORTCODE")
+) TABLESPACE XMDM_FACT;
