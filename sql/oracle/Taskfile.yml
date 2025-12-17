@@ -1,0 +1,1001 @@
+version: '3'
+
+dotenv: ['.env', '{{.ROOT_DIR}}/.env']
+
+vars:
+  # Network and container names
+  NETWORK_NAME: oracle-comparison-net
+  ORIG_CONTAINER: oracle-orig
+  NEW_CONTAINER: oracle-new
+
+  # Credentials (override via .env or CLI)
+  ORACLE_PASSWORD: '{{.ORACLE_PASSWORD | default "orakel"}}'
+  APP_USER: '{{.APP_USER | default "xmdm_user"}}'
+  APP_USER_PASSWORD: '{{.APP_USER_PASSWORD | default "xmdm_pass"}}'
+
+  # Oracle service
+  SERVICE: '{{.SERVICE | default "FREEPDB1"}}'
+
+  # Directories (ROOT_DIR is the Taskfile directory: sql/oracle)
+  ORACLE_DIR: '{{.ROOT_DIR}}'
+  SEQUALA_SOURCE_DIR: '{{.ROOT_DIR}}/../..'
+  DESIRED_STATE_DIR: '{{.ORACLE_DIR}}/DESIRED_STATE'
+  MIGRATIONS_DIR: '{{.ORACLE_DIR}}/MIGRATIONS'
+  ROUNDTRIP_DIR: '{{.ORACLE_DIR}}/ROUNDTRIP_STATE'
+  # Host path for Docker volume mounts (set via .env for DevContainer compatibility)
+  HOST_ORACLE_DIR: '{{.HOST_ORACLE_DIR | default .ORACLE_DIR}}'
+
+  # Sequala CLI
+  SEQUALA_JAR: '{{.SEQUALA_SOURCE_DIR}}/cli/target/scala-3.3.6/sequala-cli-2.0.0-M6.jar'
+  SEQUALA_MEMORY: '-Xmx8g -Xms4g'
+
+  # Default connection strings (localhost for host compatibility, override in .env for DevContainer)
+  ORIG_CONN: '{{.ORIG_CONN | default (printf "system/%s@//localhost:1521/%s" .ORACLE_PASSWORD .SERVICE)}}'
+  NEW_CONN: '{{.NEW_CONN | default (printf "system/%s@//localhost:1522/%s" .ORACLE_PASSWORD .SERVICE)}}'
+
+  # Container-to-container connection strings (for database links between containers)
+  ORIG_CONTAINER_CONN: 'system/{{.ORACLE_PASSWORD}}@//{{.ORIG_CONTAINER}}:1521/{{.SERVICE}}'
+  NEW_CONTAINER_CONN: 'system/{{.ORACLE_PASSWORD}}@//{{.NEW_CONTAINER}}:1521/{{.SERVICE}}'
+
+  # Default patterns
+  SCHEMA_PATTERN: '{{.SCHEMA_PATTERN | default "GUI_XMDM%"}}'
+  DATA_PATTERN: '{{.DATA_PATTERN | default "GUI_XMDM.XMDM_CONF%"}}'
+
+tasks:
+  # ============================================================================
+  # SEQUALA CLI
+  # ============================================================================
+
+  sequala:build:
+    desc: Build the Sequala CLI JAR
+    dir: '{{.SEQUALA_SOURCE_DIR}}'
+    cmds:
+      - sbt cli/assembly
+    sources:
+      - cli/src/**/*.scala
+      - core/src/**/*.scala
+      - build.sbt
+    generates:
+      - '{{.SEQUALA_JAR}}'
+
+  sequala:run:
+    internal: true
+    deps:
+      - task: sequala:ensure-jar
+    cmds:
+      - java {{.SEQUALA_MEMORY}} -jar "{{.SEQUALA_JAR}}" {{.CLI_ARGS}}
+    requires:
+      vars: [CLI_ARGS]
+
+  sequala:ensure-jar:
+    internal: true
+    status:
+      - test -f "{{.SEQUALA_JAR}}"
+    cmds:
+      - task: sequala:build
+
+  # ============================================================================
+  # CONTAINER MANAGEMENT
+  # ============================================================================
+
+  network:create:
+    internal: true
+    status:
+      - docker network inspect {{.NETWORK_NAME}} >/dev/null 2>&1
+    cmds:
+      - docker network create {{.NETWORK_NAME}}
+
+  container:start-orig:
+    desc: Start the oracle-orig container on port 1521
+    deps: [network:create]
+    status:
+      - docker ps --format '{{"{{.Names}}"}}' | grep -q "^{{.ORIG_CONTAINER}}$"
+    cmds:
+      - |
+        docker run -d \
+          --name "{{.ORIG_CONTAINER}}" \
+          --network "{{.NETWORK_NAME}}" \
+          -p 1521:1521 \
+          -e APP_USER="{{.APP_USER}}" \
+          -e APP_USER_PASSWORD="{{.APP_USER_PASSWORD}}" \
+          -e ORACLE_PASSWORD="{{.ORACLE_PASSWORD}}" \
+          gvenzl/oracle-free:slim-faststart
+      - task: container:wait
+        vars: { CONTAINER: '{{.ORIG_CONTAINER}}', PORT: '1521' }
+
+  container:start-new:
+    desc: Start the oracle-new container on port 1522
+    deps: [network:create]
+    status:
+      - docker ps --format '{{"{{.Names}}"}}' | grep -q "^{{.NEW_CONTAINER}}$"
+    cmds:
+      - |
+        docker run -d \
+          --name "{{.NEW_CONTAINER}}" \
+          --network "{{.NETWORK_NAME}}" \
+          -p 1522:1521 \
+          -v "{{.HOST_ORACLE_DIR}}:/scripts:ro" \
+          -e APP_USER="{{.APP_USER}}" \
+          -e APP_USER_PASSWORD="{{.APP_USER_PASSWORD}}" \
+          -e ORACLE_PASSWORD="{{.ORACLE_PASSWORD}}" \
+          gvenzl/oracle-free:slim-faststart
+      - task: container:wait
+        vars: { CONTAINER: '{{.NEW_CONTAINER}}', PORT: '1522' }
+
+  container:start:
+    desc: Start both Oracle containers
+    deps: [container:start-orig, container:start-new]
+    cmds:
+      - task: link:wait-cross-container
+        vars: { FROM: '{{.NEW_CONTAINER}}', TO: '{{.ORIG_CONTAINER}}' }
+      - task: link:create
+        vars:
+          LINK_NAME: orig_db
+          TARGET_CONN: 'system/{{.ORACLE_PASSWORD}}@//{{.ORIG_CONTAINER}}:1521/{{.SERVICE}}'
+          CONTAINER: '{{.NEW_CONTAINER}}'
+
+  container:wait:
+    internal: true
+    vars:
+      CONTAINER: '{{.CONTAINER}}'
+      PORT: '{{.PORT | default "1521"}}'
+      MAX_ATTEMPTS: '{{.MAX_ATTEMPTS | default "60"}}'
+      SQLPLUS_CONN: 'system/{{.ORACLE_PASSWORD}}@//localhost/{{.SERVICE}}'
+    cmds:
+      - |
+        echo "Waiting for {{.CONTAINER}} to be ready..."
+        for i in $(seq 1 {{.MAX_ATTEMPTS}}); do
+          if echo "SELECT 1 FROM dual;" | docker exec -i "{{.CONTAINER}}" sqlplus -s "{{.SQLPLUS_CONN}}" 2>/dev/null | grep -q "1"; then
+            echo "{{.CONTAINER}} is ready!"
+            echo "Waiting 20 seconds for stabilization..."
+            sleep 20
+            exit 0
+          fi
+          echo "  Attempt $i/{{.MAX_ATTEMPTS}} - waiting..."
+          sleep 5
+        done
+        echo "ERROR: {{.CONTAINER}} did not become ready"
+        exit 1
+
+  container:stop:
+    desc: Stop and remove all containers and network
+    cmds:
+      - docker stop {{.ORIG_CONTAINER}} {{.NEW_CONTAINER}} 2>/dev/null || true
+      - docker rm {{.ORIG_CONTAINER}} {{.NEW_CONTAINER}} 2>/dev/null || true
+      - docker network rm {{.NETWORK_NAME}} 2>/dev/null || true
+      - echo "Cleanup complete"
+
+  container:stop-new:
+    desc: Stop and remove oracle-new container only
+    cmds:
+      - docker stop {{.NEW_CONTAINER}} 2>/dev/null || true
+      - docker rm {{.NEW_CONTAINER}} 2>/dev/null || true
+      - echo "Removed {{.NEW_CONTAINER}}"
+
+  container:status:
+    desc: Show container status
+    cmds:
+      - docker ps -a --filter "name={{.ORIG_CONTAINER}}" --filter "name={{.NEW_CONTAINER}}" --format "table {{"{{.Names}}"}}\t{{"{{.Status}}"}}\t{{"{{.Ports}}"}}"
+
+  # ============================================================================
+  # DATABASE LINKS
+  # ============================================================================
+
+  link:create:
+    desc: "Create a database link (LINK_NAME, TARGET_CONN required)"
+    vars:
+      CONTAINER: '{{.CONTAINER | default .NEW_CONTAINER}}'
+      SOURCE_CONN: '{{.SOURCE_CONN | default .NEW_CONN}}'
+      # Parse target connection components
+      TARGET_USER: '{{regexReplaceAll "([^/]*)/.*" .TARGET_CONN "${1}"}}'
+      TARGET_PASS: '{{regexReplaceAll "[^/]*/([^@]*)@.*" .TARGET_CONN "${1}"}}'
+      TARGET_HOST: '{{regexReplaceAll ".*@//([^:]*):.*" .TARGET_CONN "${1}"}}'
+      TARGET_PORT: '{{regexReplaceAll ".*@//[^:]*:([0-9]*)/.*" .TARGET_CONN "${1}"}}'
+      TARGET_SERVICE: '{{regexReplaceAll ".*@//[^/]*/(.*)" .TARGET_CONN "${1}"}}'
+    requires:
+      vars: [LINK_NAME, TARGET_CONN]
+    cmds:
+      - |
+        echo "Creating database link '{{.LINK_NAME}}' on {{.CONTAINER}}"
+        echo "CREATE DATABASE LINK {{.LINK_NAME}} CONNECT TO {{.TARGET_USER}} IDENTIFIED BY {{.TARGET_PASS}} USING '{{.TARGET_HOST}}:{{.TARGET_PORT}}/{{.TARGET_SERVICE}}';" | \
+          docker exec -i "{{.CONTAINER}}" sqlplus -s "system/{{.ORACLE_PASSWORD}}@//localhost/{{.SERVICE}}"
+      - |
+        echo "Testing link..."
+        echo "SELECT * FROM dual@{{.LINK_NAME}};" | \
+          docker exec -i "{{.CONTAINER}}" sqlplus -s "system/{{.ORACLE_PASSWORD}}@//localhost/{{.SERVICE}}"
+
+  link:wait-cross-container:
+    internal: true
+    vars:
+      FROM: '{{.FROM}}'
+      TO: '{{.TO}}'
+      MAX_ATTEMPTS: '30'
+    cmds:
+      - |
+        echo "Waiting for {{.TO}} to be reachable from {{.FROM}}..."
+        for i in $(seq 1 {{.MAX_ATTEMPTS}}); do
+          if echo "SELECT 1 FROM dual;" | docker exec -i "{{.FROM}}" sqlplus -s "system/{{.ORACLE_PASSWORD}}@//{{.TO}}:1521/{{.SERVICE}}" 2>/dev/null | grep -q "1"; then
+            echo "  {{.TO}} is reachable from {{.FROM}}!"
+            exit 0
+          fi
+          echo "  Attempt $i/{{.MAX_ATTEMPTS}} - waiting..."
+          sleep 2
+        done
+        echo "ERROR: {{.TO}} not reachable from {{.FROM}}"
+        exit 1
+
+  # ============================================================================
+  # SQL EXECUTION
+  # ============================================================================
+
+  sql:run:
+    desc: "Run SQL statement (SQL, CONTAINER required)"
+    internal: true
+    vars:
+      CONTAINER: '{{.CONTAINER | default .NEW_CONTAINER}}'
+      CONN: '{{.CONN | default .NEW_CONN}}'
+      SQLPLUS_CONN: 'system/{{.ORACLE_PASSWORD}}@//localhost/{{.SERVICE}}'
+    requires:
+      vars: [SQL]
+    cmds:
+      - echo "{{.SQL}}" | docker exec -i "{{.CONTAINER}}" sqlplus -s "{{.SQLPLUS_CONN}}"
+
+  sql:file:
+    desc: "Run SQL file (FILE, CONTAINER required)"
+    vars:
+      CONTAINER: '{{.CONTAINER | default .NEW_CONTAINER}}'
+      SQLPLUS_CONN: 'system/{{.ORACLE_PASSWORD}}@//localhost/{{.SERVICE}}'
+    requires:
+      vars: [FILE]
+    preconditions:
+      - test -f "{{.FILE}}"
+    cmds:
+      - docker exec -i "{{.CONTAINER}}" sqlplus -s "{{.SQLPLUS_CONN}}" < "{{.FILE}}"
+      - echo "COMMIT;" | docker exec -i "{{.CONTAINER}}" sqlplus -s "{{.SQLPLUS_CONN}}"
+
+  # ============================================================================
+  # MIGRATIONS
+  # ============================================================================
+
+  migrate:
+    desc: "Run SQL migrations from file (FILE required). Setup (_setup.sql) is auto-detected."
+    vars:
+      CONTAINER: '{{.CONTAINER | default .NEW_CONTAINER}}'
+      SQLPLUS_CONN: 'system/{{.ORACLE_PASSWORD}}@//localhost/{{.SERVICE}}'
+    requires:
+      vars: [FILE]
+    preconditions:
+      - test -f "{{.FILE}}"
+    cmds:
+      - |
+        echo "=== Running migrations from {{.FILE}} ==="
+        echo "Container: {{.CONTAINER}}"
+
+        # Check for setup file in same directory (generated by dump with --filter)
+        setup_file="$(dirname "{{.FILE}}")/_setup.sql"
+        if [ -f "$setup_file" ]; then
+          echo "Running setup from $setup_file..."
+          docker exec -i "{{.CONTAINER}}" sqlplus -s "{{.SQLPLUS_CONN}}" < "$setup_file" 2>/dev/null || true
+          echo "COMMIT;" | docker exec -i "{{.CONTAINER}}" sqlplus -s "{{.SQLPLUS_CONN}}"
+        fi
+
+        # Execute migrations
+        echo "Executing SQL..."
+        docker exec -i "{{.CONTAINER}}" sqlplus -s "{{.SQLPLUS_CONN}}" < "{{.FILE}}"
+        echo "COMMIT;" | docker exec -i "{{.CONTAINER}}" sqlplus -s "{{.SQLPLUS_CONN}}"
+        echo "Done."
+
+  migrate:orig:
+    desc: Parse SQL files and run migrations on oracle-orig
+    deps: [container:start-orig]
+    vars:
+      OUTPUT_FILE: '{{.SEQUALA_SOURCE_DIR}}/sorted-migrations.sql'
+    cmds:
+      - task: sequala:run
+        vars:
+          CLI_ARGS: >-
+            parse oracle
+            --simplify
+            --output sql
+            --write-to "{{.OUTPUT_FILE}}"
+            {{.ORACLE_DIR}}/*.sql
+      - task: migrate
+        vars:
+          FILE: '{{.OUTPUT_FILE}}'
+          CONTAINER: '{{.ORIG_CONTAINER}}'
+
+  migrate:new:
+    desc: Process *-PROD-tables.sql and run on oracle-new
+    deps: [container:start-new]
+    vars:
+      OUTPUT_FILE: '{{.SEQUALA_SOURCE_DIR}}/new-schema-migrations.sql'
+    cmds:
+      - |
+        > "{{.OUTPUT_FILE}}"
+        for prod_file in {{.DESIRED_STATE_DIR}}/*-PROD-tables.sql; do
+          [ -f "$prod_file" ] || continue
+          base=$(basename "$prod_file" .sql)
+
+          echo "Processing $prod_file..."
+
+          # DDL
+          task sequala:run -- parse oracle --output sql --write-to "/tmp/${base}-ddl.sql" "$prod_file"
+          echo "-- From: $prod_file (DDL)" >> "{{.OUTPUT_FILE}}"
+          cat "/tmp/${base}-ddl.sql" >> "{{.OUTPUT_FILE}}"
+
+          # Derived tables
+          task sequala:run -- parse oracle --output "jq-file-sql:{{.ORACLE_DIR}}/ddl-to-derived-tables.jq" --write-to "/tmp/${base}-derived.sql" "$prod_file"
+          echo "-- From: $prod_file (Derived)" >> "{{.OUTPUT_FILE}}"
+          cat "/tmp/${base}-derived.sql" >> "{{.OUTPUT_FILE}}"
+
+          # Metadata
+          task sequala:run -- parse oracle --output "jq-file-sql:{{.ORACLE_DIR}}/ddl-to-metadata.jq" --write-to "/tmp/${base}-meta.sql" "$prod_file"
+          echo "-- From: $prod_file (Metadata)" >> "{{.OUTPUT_FILE}}"
+          cat "/tmp/${base}-meta.sql" >> "{{.OUTPUT_FILE}}"
+
+          rm -f "/tmp/${base}-ddl.sql" "/tmp/${base}-derived.sql" "/tmp/${base}-meta.sql"
+        done
+      - task: migrate
+        vars:
+          FILE: '{{.OUTPUT_FILE}}'
+          CONTAINER: '{{.NEW_CONTAINER}}'
+
+  # ============================================================================
+  # GENERATION
+  # ============================================================================
+
+  generate:prod-tables:
+    desc: Generate *-PROD-tables.sql from all schema directories
+    vars:
+      FORCE: '{{.FORCE | default "false"}}'
+    cmds:
+      - mkdir -p "{{.DESIRED_STATE_DIR}}"
+      - |
+        if [ "{{.FORCE}}" != "true" ]; then
+          existing=$(ls "{{.DESIRED_STATE_DIR}}"/*-PROD-tables.sql 2>/dev/null | wc -l)
+          if [ "$existing" -gt 0 ]; then
+            echo "Files already exist. Use FORCE=true to regenerate."
+            ls -la "{{.DESIRED_STATE_DIR}}"/*-PROD-tables.sql
+            exit 0
+          fi
+        fi
+
+        for schema_dir in {{.ORACLE_DIR}}/*/; do
+          schema_name=$(basename "$schema_dir")
+          [ "$schema_name" = "DESIRED_STATE" ] && continue
+          [ "$schema_name" = "INITIAL" ] && continue
+          [ "$schema_name" = "MIGRATIONS" ] && continue
+          [ "$schema_name" = "TEST_MIGRATIONS" ] && continue
+          [ "$schema_name" = "ROUNDTRIP_STATE" ] && continue
+
+          input_files=$(find "$schema_dir" -name "*.sql" -type f 2>/dev/null | sort | tr '\n' ' ')
+          [ -z "$input_files" ] && continue
+
+          echo "Processing $schema_name..."
+          task sequala:run -- parse oracle \
+            --output "jq-file-sql:{{.ORACLE_DIR}}/merge-ddl-and-metadata.jq" \
+            --pretty true \
+            --write-to "{{.DESIRED_STATE_DIR}}/" \
+            $input_files
+        done
+
+        echo "Generated files:"
+        ls -la "{{.DESIRED_STATE_DIR}}"/*-PROD-tables.sql 2>/dev/null || echo "(none)"
+
+  # ============================================================================
+  # COMPARISON
+  # ============================================================================
+
+  compare:
+    desc: Compare tables between containers via database link
+    vars:
+      PATTERN: '{{.PATTERN | default "GUI_XMDM%"}}'
+      DATA_PATTERN: '{{.DATA_PATTERN | default "GUI_XMDM.XMDM_CONF%"}}'
+      CONTAINER: '{{.CONTAINER | default .NEW_CONTAINER}}'
+      SQLPLUS_CONN: 'system/{{.ORACLE_PASSWORD}}@//localhost/{{.SERVICE}}'
+    cmds:
+      - docker exec "{{.CONTAINER}}" sqlplus -s "{{.SQLPLUS_CONN}}" @/scripts/compare.sql "{{.PATTERN}}" "{{.DATA_PATTERN}}"
+
+  compare:desired-state:
+    desc: Generate schema migrations from DESIRED_STATE vs database
+    vars:
+      OUTPUT_DIR: '{{.OUTPUT_DIR | default .MIGRATIONS_DIR}}'
+      CONN: '{{.CONN | default .NEW_CONN}}'
+      SCHEMA: '{{.SCHEMA | default .SCHEMA_PATTERN}}'
+    cmds:
+      - mkdir -p "{{.OUTPUT_DIR}}"
+      - task: sequala:run
+        vars:
+          CLI_ARGS: >-
+            plan
+            --source "{{.DESIRED_STATE_DIR}}/*-PROD-tables.sql"
+            --database "jdbc:oracle:thin:{{.CONN}}"
+            --schema "{{.SCHEMA}}"
+            --dialect oracle
+            --format sql
+            --pretty true
+            --source-transform "jq:{{.ORACLE_DIR}}/ddl-to-derived-tables.jq"
+            --transform "exclude:DropTable"
+            --write-to "{{.OUTPUT_DIR}}/"
+
+  # ============================================================================
+  # SYNC
+  # ============================================================================
+
+  sync:
+    desc: Generate combined schema+data migrations from DESIRED_STATE
+    vars:
+      OUTPUT_DIR: '{{.OUTPUT_DIR | default .MIGRATIONS_DIR}}'
+      CONN: '{{.CONN | default .NEW_CONN}}'
+      SCHEMA: '{{.SCHEMA | default .SCHEMA_PATTERN}}'
+    cmds:
+      - mkdir -p "{{.OUTPUT_DIR}}"
+      - task: sequala:run
+        vars:
+          CLI_ARGS: >-
+            sync
+            --desired "{{.DESIRED_STATE_DIR}}/*-PROD-tables.sql"
+            --database "jdbc:oracle:thin:{{.CONN}}"
+            --schema "{{.SCHEMA}}"
+            --dialect oracle
+            --format sql
+            --pretty true
+            --source-transform "jq:{{.ORACLE_DIR}}/ddl-to-sync.jq"
+            --ddls-from @database
+            --with-deletes false
+            --write-to "{{.OUTPUT_DIR}}/"
+
+  # ============================================================================
+  # DUMP
+  # ============================================================================
+
+  dump:unified:
+    desc: "Export DDL and data using unified filter (CONN required)"
+    vars:
+      DDLS_PATTERN: '{{.DDLS_PATTERN | default "%"}}'
+      DATA_PATTERN: '{{.DATA_PATTERN | default "GUI_XMDM.XMDM_CONF%"}}'
+      OUTPUT_DIR: '{{.OUTPUT_DIR | default .DESIRED_STATE_DIR}}'
+      FILTER: '{{.FILTER | default (printf "%s/unified-dump-filter.jq" .ORACLE_DIR)}}'
+    requires:
+      vars: [CONN]
+    cmds:
+      - mkdir -p "{{.OUTPUT_DIR}}"
+      - task: sequala:run
+        vars:
+          CLI_ARGS: >-
+            dump
+            --database "jdbc:oracle:thin:{{.CONN}}"
+            --outputDir "{{.OUTPUT_DIR}}"
+            --pretty true
+            --ddls "{{.DDLS_PATTERN}}"
+            --data "{{.DATA_PATTERN}}"
+            --filter "{{.FILTER}}"
+
+  # ============================================================================
+  # ROUNDTRIP - Main orchestration with resumability
+  # ============================================================================
+
+  roundtrip:
+    desc: "End-to-end roundtrip test (CONN required for dump, LINK_CONN for database link)"
+    vars:
+      DDLS_PATTERN: '{{.DDLS_PATTERN | default "%"}}'
+      DATA_PATTERN: '{{.DATA_PATTERN | default "GUI_XMDM.XMDM_CONF%"}}'
+      COMPARE_PATTERN: '{{.COMPARE_PATTERN | default "GUI_XMDM%"}}'
+      COMPARE_DATA: '{{.COMPARE_DATA | default "GUI_XMDM.XMDM_CONF%"}}'
+      LINK_CONN: '{{.LINK_CONN | default .CONN}}'
+    requires:
+      vars: [CONN]
+    cmds:
+      - task: roundtrip:dump
+        vars: { CONN: '{{.CONN}}', DDLS_PATTERN: '{{.DDLS_PATTERN}}', DATA_PATTERN: '{{.DATA_PATTERN}}' }
+      - task: roundtrip:combine
+      - task: roundtrip:container
+      - task: roundtrip:apply
+      - task: roundtrip:apply-metadata
+      - task: roundtrip:link
+        vars: { CONN: '{{.LINK_CONN}}' }
+      - task: roundtrip:compare
+        vars: { PATTERN: '{{.COMPARE_PATTERN}}', DATA_PATTERN: '{{.COMPARE_DATA}}' }
+
+  roundtrip:clean:
+    desc: Clean roundtrip state to start fresh
+    cmds:
+      - rm -rf "{{.ROUNDTRIP_DIR}}"
+      - echo "Cleaned {{.ROUNDTRIP_DIR}}"
+
+  roundtrip:reset-new:
+    desc: Tear down oracle-new and clear apply state (keeps dump intact for re-apply)
+    cmds:
+      - task: container:stop-new
+      - rm -f "{{.ROUNDTRIP_DIR}}/.apply_done" "{{.ROUNDTRIP_DIR}}/.metadata_done"
+      - echo "Ready to re-run roundtrip:container, roundtrip:apply, roundtrip:apply-metadata, roundtrip:link, roundtrip:compare"
+
+  roundtrip:fresh-new:
+    desc: Full reset and re-apply to fresh oracle-new (requires prior dump)
+    vars:
+      LINK_CONN: '{{.LINK_CONN | default .ORIG_CONTAINER_CONN}}'
+      COMPARE_PATTERN: '{{.COMPARE_PATTERN | default "GUI_XMDM%"}}'
+      COMPARE_DATA: '{{.COMPARE_DATA | default "NONE"}}'
+    preconditions:
+      - test -f "{{.ROUNDTRIP_DIR}}/roundtrip-migrations.sql"
+    cmds:
+      - task: roundtrip:reset-new
+      - task: roundtrip:container
+      - task: roundtrip:apply
+      - task: roundtrip:apply-metadata
+      - task: roundtrip:link
+        vars: { CONN: '{{.LINK_CONN}}' }
+      - task: roundtrip:compare
+        vars: { PATTERN: '{{.COMPARE_PATTERN}}', DATA_PATTERN: '{{.COMPARE_DATA}}' }
+
+  roundtrip:status:
+    desc: Show which roundtrip steps are completed
+    vars:
+      SQLPLUS_CONN: 'system/{{.ORACLE_PASSWORD}}@//localhost/{{.SERVICE}}'
+    cmds:
+      - |
+        echo "=== Roundtrip Status ==="
+        echo ""
+        check() {
+          if [ -f "{{.ROUNDTRIP_DIR}}/$1" ]; then
+            echo "  ✓ $2"
+          else
+            echo "  ○ $2"
+          fi
+        }
+        check ".dump_done" "Step 1: Dump schema and metadata"
+        [ -f "{{.ROUNDTRIP_DIR}}/roundtrip-migrations.sql" ] && echo "  ✓ Step 2: Combine files" || echo "  ○ Step 2: Combine files"
+        docker ps --format '{{"{{.Names}}"}}' | grep -q "^{{.NEW_CONTAINER}}$" && echo "  ✓ Step 3: Container running" || echo "  ○ Step 3: Container running"
+        check ".apply_done" "Step 4a: Apply DDL migrations"
+        check ".metadata_done" "Step 4b: Apply metadata INSERTs"
+        echo "SELECT 1 FROM dual@orig_db;" | docker exec -i "{{.NEW_CONTAINER}}" sqlplus -s "{{.SQLPLUS_CONN}}" 2>/dev/null | grep -q "1" && echo "  ✓ Step 5: Database link working" || echo "  ○ Step 5: Database link working"
+        echo ""
+        echo "Files in {{.ROUNDTRIP_DIR}}:"
+        ls -la "{{.ROUNDTRIP_DIR}}" 2>/dev/null || echo "  (directory does not exist)"
+
+  roundtrip:dump:
+    desc: "Step 1: Dump schema and metadata from source database"
+    vars:
+      DDLS_PATTERN: '{{.DDLS_PATTERN | default "%"}}'
+      DATA_PATTERN: '{{.DATA_PATTERN | default "GUI_XMDM.XMDM_CONF%"}}'
+    requires:
+      vars: [CONN]
+    status:
+      - test -f "{{.ROUNDTRIP_DIR}}/.dump_done"
+      - test -n "$(ls {{.ROUNDTRIP_DIR}}/*-PROD-tables.sql 2>/dev/null)"
+    cmds:
+      - rm -rf "{{.ROUNDTRIP_DIR}}"
+      - mkdir -p "{{.ROUNDTRIP_DIR}}"
+      - task: dump:unified
+        vars:
+          CONN: '{{.CONN}}'
+          DDLS_PATTERN: '{{.DDLS_PATTERN}}'
+          DATA_PATTERN: '{{.DATA_PATTERN}}'
+          OUTPUT_DIR: '{{.ROUNDTRIP_DIR}}'
+      - touch "{{.ROUNDTRIP_DIR}}/.dump_done"
+
+  roundtrip:dump-orig:
+    desc: "Dump from oracle-orig with default patterns (GUI_XMDM%)"
+    vars:
+      DDLS_PATTERN: '{{.DDLS_PATTERN | default "GUI_XMDM%"}}'
+      DATA_PATTERN: '{{.DATA_PATTERN | default "GUI_XMDM.XMDM_CONF%"}}'
+    cmds:
+      - task: roundtrip:dump
+        vars:
+          CONN: '{{.ORIG_CONN}}'
+          DDLS_PATTERN: '{{.DDLS_PATTERN}}'
+          DATA_PATTERN: '{{.DATA_PATTERN}}'
+      - task: roundtrip:combine
+
+  roundtrip:combine:
+    desc: "Step 2: Combine dumped files into single migration file"
+    vars:
+      MIGRATIONS_FILE: '{{.ROUNDTRIP_DIR}}/roundtrip-migrations.sql'
+    status:
+      - test -f "{{.MIGRATIONS_FILE}}"
+    preconditions:
+      - test -f "{{.ROUNDTRIP_DIR}}/.dump_done"
+    cmds:
+      - |
+        echo "=== Combining generated files ==="
+        > "{{.MIGRATIONS_FILE}}"
+        for f in {{.ROUNDTRIP_DIR}}/*-PROD-tables.sql; do
+          [ -f "$f" ] || continue
+          echo "-- From: $f" >> "{{.MIGRATIONS_FILE}}"
+          cat "$f" >> "{{.MIGRATIONS_FILE}}"
+          echo "" >> "{{.MIGRATIONS_FILE}}"
+        done
+        echo "Combined into: {{.MIGRATIONS_FILE}}"
+        echo "Statement count: $(grep -c ';$' "{{.MIGRATIONS_FILE}}" || echo 0)"
+
+  roundtrip:container:
+    desc: "Step 3: Ensure oracle-new container is running"
+    status:
+      - docker ps --format '{{"{{.Names}}"}}' | grep -q "^{{.NEW_CONTAINER}}$"
+    cmds:
+      - task: container:start-new
+
+  roundtrip:apply:
+    desc: "Step 4: Apply migrations to oracle-new"
+    vars:
+      MIGRATIONS_FILE: '{{.ROUNDTRIP_DIR}}/roundtrip-migrations.sql'
+    status:
+      - test -f "{{.ROUNDTRIP_DIR}}/.apply_done"
+    preconditions:
+      - test -f "{{.MIGRATIONS_FILE}}"
+      - docker ps --format '{{"{{.Names}}"}}' | grep -q "^{{.NEW_CONTAINER}}$"
+    cmds:
+      - task: migrate
+        vars:
+          FILE: '{{.MIGRATIONS_FILE}}'
+          CONTAINER: '{{.NEW_CONTAINER}}'
+      - touch "{{.ROUNDTRIP_DIR}}/.apply_done"
+
+  roundtrip:apply-metadata:
+    desc: "Step 4b: Generate and apply metadata INSERTs from DDL comments"
+    vars:
+      METADATA_DIR: '{{.ROUNDTRIP_DIR}}/metadata'
+      SQLPLUS_CONN: 'system/{{.ORACLE_PASSWORD}}@//localhost/{{.SERVICE}}'
+    status:
+      - test -f "{{.ROUNDTRIP_DIR}}/.metadata_done"
+    preconditions:
+      - test -f "{{.ROUNDTRIP_DIR}}/.apply_done"
+      - docker ps --format '{{"{{.Names}}"}}' | grep -q "^{{.NEW_CONTAINER}}$"
+    cmds:
+      - echo "=== Generating metadata INSERTs from DDL comments ==="
+      - rm -rf "{{.METADATA_DIR}}"
+      - mkdir -p "{{.METADATA_DIR}}"
+      - task: sequala:run
+        vars:
+          CLI_ARGS: >-
+            parse oracle
+            --output "jq-file-sql:{{.ORACLE_DIR}}/ddl-to-sync.jq"
+            --write-to "{{.METADATA_DIR}}/"
+            {{.ROUNDTRIP_DIR}}/*-PROD-tables.sql
+      - |
+        echo "=== Applying metadata INSERTs ==="
+        cat {{.METADATA_DIR}}/*-metadata.sql 2>/dev/null | \
+          docker exec -i "{{.NEW_CONTAINER}}" sqlplus -s "{{.SQLPLUS_CONN}}" || true
+        echo "COMMIT;" | docker exec -i "{{.NEW_CONTAINER}}" sqlplus -s "{{.SQLPLUS_CONN}}"
+      - touch "{{.ROUNDTRIP_DIR}}/.metadata_done"
+
+  roundtrip:link:
+    desc: "Step 5: Create database link from oracle-new to source"
+    vars:
+      SQLPLUS_CONN: 'system/{{.ORACLE_PASSWORD}}@//localhost/{{.SERVICE}}'
+    requires:
+      vars: [CONN]
+    status:
+      - echo "SELECT 1 FROM dual@orig_db;" | docker exec -i "{{.NEW_CONTAINER}}" sqlplus -s "{{.SQLPLUS_CONN}}" 2>&1 | grep -v "ERROR" | grep -q "^[[:space:]]*1[[:space:]]*$"
+    preconditions:
+      - test -f "{{.ROUNDTRIP_DIR}}/.apply_done"
+    cmds:
+      - |
+        echo "DROP DATABASE LINK orig_db;" | \
+          docker exec -i "{{.NEW_CONTAINER}}" sqlplus -s "{{.SQLPLUS_CONN}}" 2>/dev/null || true
+      - task: link:create
+        vars:
+          LINK_NAME: orig_db
+          TARGET_CONN: '{{.CONN}}'
+          CONTAINER: '{{.NEW_CONTAINER}}'
+
+  roundtrip:compare:
+    desc: "Step 6: Compare oracle-new against source database"
+    vars:
+      PATTERN: '{{.PATTERN | default "GUI_XMDM%"}}'
+      DATA_PATTERN: '{{.DATA_PATTERN | default "GUI_XMDM.XMDM_CONF%"}}'
+      SQLPLUS_CONN: 'system/{{.ORACLE_PASSWORD}}@//localhost/{{.SERVICE}}'
+    preconditions:
+      - echo "SELECT 1 FROM dual@orig_db;" | docker exec -i "{{.NEW_CONTAINER}}" sqlplus -s "{{.SQLPLUS_CONN}}" 2>/dev/null | grep -q "1"
+    cmds:
+      - docker exec "{{.NEW_CONTAINER}}" sqlplus -s "{{.SQLPLUS_CONN}}" @/scripts/compare.sql "{{.PATTERN}}" "{{.DATA_PATTERN}}"
+      - echo "=== Roundtrip test complete ==="
+      - echo "Results saved to {{.ROUNDTRIP_DIR}}"
+
+  # ============================================================================
+  # ROUNDTRIP TEST (using DESIRED_STATE files)
+  # ============================================================================
+
+  roundtrip-test:
+    desc: Full roundtrip using DESIRED_STATE files
+    vars:
+      DDLS_PATTERN: '{{.DDLS_PATTERN | default "GUI_XMDM%"}}'
+      DATA_PATTERN: '{{.DATA_PATTERN | default "GUI_XMDM.XMDM_CONF%"}}'
+      COMPARE_PATTERN: '{{.COMPARE_PATTERN | default "GUI_XMDM%"}}'
+      COMPARE_DATA: '{{.COMPARE_DATA | default "GUI_XMDM.XMDM_CONF%"}}'
+    cmds:
+      - task: roundtrip-test:setup-orig
+      - task: roundtrip
+        vars:
+          CONN: '{{.ORIG_CONN}}'
+          LINK_CONN: '{{.ORIG_CONTAINER_CONN}}'
+          DDLS_PATTERN: '{{.DDLS_PATTERN}}'
+          DATA_PATTERN: '{{.DATA_PATTERN}}'
+          COMPARE_PATTERN: '{{.COMPARE_PATTERN}}'
+          COMPARE_DATA: '{{.COMPARE_DATA}}'
+
+  roundtrip-test:setup-orig:
+    desc: Setup oracle-orig container with DESIRED_STATE for testing
+    cmds:
+      - task: container:start-orig
+      - task: roundtrip-test:apply-desired
+
+  roundtrip-test:apply-desired:
+    desc: Apply DESIRED_STATE to oracle-orig
+    vars:
+      DDL_FILE: /tmp/desired-state-ddl.sql
+      METADATA_DIR: /tmp/metadata-inserts
+      SQLPLUS_CONN: 'system/{{.ORACLE_PASSWORD}}@//localhost/{{.SERVICE}}'
+    status:
+      - test -f "{{.ROUNDTRIP_DIR}}/.desired_applied"
+    cmds:
+      - mkdir -p "{{.ROUNDTRIP_DIR}}"
+      - task: roundtrip-test:create-schemas
+      - |
+        echo "=== Combining DESIRED_STATE DDL files ==="
+        # Concatenate files with blank lines between them to avoid SQL parsing issues
+        # Also fix Oracle Free incompatibilities:
+        #   - Remove TABLESPACE clauses (XMDM_FACT, FACT_DATA)
+        #   - Convert NUMBER(126) to NUMBER (max precision is 38)
+        rm -f "{{.DDL_FILE}}"
+        for f in {{.DESIRED_STATE_DIR}}/GUI_XMDM*-PROD-tables.sql; do
+          [ -f "$f" ] || continue
+          echo "-- From: $f"
+          sed -e 's/TABLESPACE XMDM_FACT//' \
+              -e 's/TABLESPACE FACT_DATA//' \
+              -e 's/NUMBER(126)/NUMBER/g' \
+              "$f"
+          echo ""
+          echo ""
+        done > "{{.DDL_FILE}}"
+        echo "Combined $(wc -l < "{{.DDL_FILE}}" | tr -d ' ') lines"
+      - task: migrate
+        vars:
+          FILE: '{{.DDL_FILE}}'
+          CONTAINER: '{{.ORIG_CONTAINER}}'
+      - task: roundtrip-test:generate-metadata
+        vars:
+          METADATA_DIR: '{{.METADATA_DIR}}'
+      - |
+        echo "=== Applying metadata INSERTs ==="
+        cat {{.METADATA_DIR}}/*-metadata.sql 2>/dev/null | \
+          docker exec -i "{{.ORIG_CONTAINER}}" sqlplus -s "{{.SQLPLUS_CONN}}" || true
+        echo "COMMIT;" | docker exec -i "{{.ORIG_CONTAINER}}" sqlplus -s "{{.SQLPLUS_CONN}}"
+      - rm -f "{{.DDL_FILE}}" "$(dirname "{{.DDL_FILE}}")/_setup.sql"
+      - rm -rf "{{.METADATA_DIR}}"
+      - touch "{{.ROUNDTRIP_DIR}}/.desired_applied"
+
+  roundtrip-test:create-schemas:
+    desc: Create all schemas needed for DESIRED_STATE tables
+    internal: true
+    vars:
+      SQLPLUS_CONN: 'system/{{.ORACLE_PASSWORD}}@//localhost/{{.SERVICE}}'
+    cmds:
+      - |
+        echo "=== Creating schemas for DESIRED_STATE ==="
+        # Extract unique schema names from CREATE TABLE statements (GUI_XMDM* only)
+        schemas=$(grep -h "CREATE TABLE" {{.DESIRED_STATE_DIR}}/GUI_XMDM*-PROD-tables.sql | \
+          sed 's/.*"\([^"]*\)"\..*/\1/' | sort -u)
+
+        for schema in $schemas; do
+          echo "Creating schema: $schema"
+          cat <<EOSQL | docker exec -i "{{.ORIG_CONTAINER}}" sqlplus -s "{{.SQLPLUS_CONN}}"
+        DECLARE
+          user_exists NUMBER;
+        BEGIN
+          SELECT COUNT(*) INTO user_exists FROM dba_users WHERE username = '${schema}';
+          IF user_exists = 0 THEN
+            EXECUTE IMMEDIATE 'CREATE USER ${schema} IDENTIFIED BY {{.ORACLE_PASSWORD}}';
+            EXECUTE IMMEDIATE 'GRANT CONNECT, RESOURCE TO ${schema}';
+            EXECUTE IMMEDIATE 'ALTER USER ${schema} QUOTA UNLIMITED ON USERS';
+          END IF;
+        END;
+        /
+        EOSQL
+        done
+        echo "COMMIT;" | docker exec -i "{{.ORIG_CONTAINER}}" sqlplus -s "{{.SQLPLUS_CONN}}"
+        echo "=== Schema creation complete ==="
+
+  roundtrip-test:generate-metadata:
+    internal: true
+    vars:
+      METADATA_DIR: '{{.METADATA_DIR | default "/tmp/metadata-inserts"}}'
+    cmds:
+      - echo "=== Generating metadata INSERTs ==="
+      - rm -rf "{{.METADATA_DIR}}"
+      - mkdir -p "{{.METADATA_DIR}}"
+      - task: sequala:run
+        vars:
+          CLI_ARGS: >-
+            parse oracle
+            --output "jq-file-sql:{{.ORACLE_DIR}}/ddl-to-sync.jq"
+            --write-to "{{.METADATA_DIR}}/"
+            {{.DESIRED_STATE_DIR}}/GUI_XMDM*-PROD-tables.sql
+
+  # ============================================================================
+  # TEST SYNC
+  # ============================================================================
+
+  test:sync:
+    desc: End-to-end test of sync with --ddls-from @database
+    vars:
+      TEST_SCHEMA: GUI_XMDM_STX_TESTS
+      TEST_FILE: '{{.DESIRED_STATE_DIR}}/{{.TEST_SCHEMA}}-PROD-tables.sql'
+      OUTPUT_DIR: '{{.ORACLE_DIR}}/TEST_MIGRATIONS'
+      SQLPLUS_CONN: 'system/{{.ORACLE_PASSWORD}}@//localhost/{{.SERVICE}}'
+    deps: [container:start-new]
+    cmds:
+      - rm -rf "{{.OUTPUT_DIR}}"
+      - mkdir -p "{{.OUTPUT_DIR}}"
+      - task: test:sync:setup-schemas
+      - task: test:sync:initial
+      - task: test:sync:modify-and-rerun
+      - task: test:sync:verify
+
+  test:sync:setup-schemas:
+    internal: true
+    vars:
+      SQLPLUS_CONN: 'system/{{.ORACLE_PASSWORD}}@//localhost/{{.SERVICE}}'
+    cmds:
+      - |
+        echo "=== Creating GUI_XMDM schema with XMDM_CONF tables ==="
+        echo "DROP USER GUI_XMDM CASCADE;" | docker exec -i "{{.NEW_CONTAINER}}" sqlplus -s "{{.SQLPLUS_CONN}}" 2>/dev/null || true
+        cat <<EOF | docker exec -i "{{.NEW_CONTAINER}}" sqlplus -s "{{.SQLPLUS_CONN}}"
+        CREATE USER GUI_XMDM IDENTIFIED BY {{.ORACLE_PASSWORD}};
+        GRANT CONNECT, RESOURCE TO GUI_XMDM;
+        ALTER USER GUI_XMDM QUOTA UNLIMITED ON USERS;
+        EOF
+      - |
+        docker exec -i "{{.NEW_CONTAINER}}" sqlplus -s "{{.SQLPLUS_CONN}}" <<'EOSQL'
+        CREATE TABLE "GUI_XMDM"."XMDM_CONF_TABLE" (
+          "APP_NAME" VARCHAR2(20 BYTE) NOT NULL,
+          "TBL_NAME" VARCHAR2(61 BYTE) NOT NULL,
+          "TBL_GUI_NAME" VARCHAR2(150 BYTE),
+          "TBL_DESC" VARCHAR2(250 BYTE),
+          "TBL_DISPLAY_ORDER" NUMBER(3, 0),
+          "TBL_GUI_NAME_SHORT" VARCHAR2(31 BYTE),
+          "TBL_SCHEMA" VARCHAR2(50 BYTE),
+          "TBL_NAME_AT" VARCHAR2(64 BYTE),
+          "HISTORICAL_TBL_FLAG" CHAR(1 BYTE),
+          PRIMARY KEY ("APP_NAME", "TBL_NAME")
+        );
+        EOSQL
+      - |
+        docker exec -i "{{.NEW_CONTAINER}}" sqlplus -s "{{.SQLPLUS_CONN}}" <<'EOSQL'
+        CREATE TABLE "GUI_XMDM"."XMDM_CONF_COLUMN" (
+          "APP_NAME" VARCHAR2(20 BYTE) NOT NULL,
+          "TBL_NAME" VARCHAR2(61 BYTE) NOT NULL,
+          "COL_NAME" VARCHAR2(61 BYTE) NOT NULL,
+          "COL_GUI_NAME" VARCHAR2(150 BYTE),
+          "COL_DESC" VARCHAR2(250 BYTE),
+          "COL_FORMAT" VARCHAR2(80 BYTE),
+          "COL_DISPLAY_ORDER" NUMBER(3, 0),
+          "COL_PK" CHAR(1 BYTE),
+          "COL_REQUIRED" CHAR(1 BYTE),
+          "COL_EDITABLE" CHAR(1 BYTE),
+          "COL_DATATYPE" CHAR(1 BYTE),
+          "COL_VALIDATOR" VARCHAR2(200 BYTE),
+          "COL_MULTILINE" CHAR(1 BYTE),
+          "COL_VALID_INTERVAL_COLUMN" VARCHAR2(61 BYTE),
+          "COL_AUTOINCREMENT" CHAR(1 BYTE),
+          "COL_DEFAULT_VAL" VARCHAR2(61 BYTE),
+          PRIMARY KEY ("APP_NAME", "TBL_NAME", "COL_NAME")
+        );
+        EOSQL
+      - |
+        echo "=== Creating GUI_XMDM_STX_TESTS schema ==="
+        echo "DROP USER GUI_XMDM_STX_TESTS CASCADE;" | docker exec -i "{{.NEW_CONTAINER}}" sqlplus -s "{{.SQLPLUS_CONN}}" 2>/dev/null || true
+        cat <<EOF | docker exec -i "{{.NEW_CONTAINER}}" sqlplus -s "{{.SQLPLUS_CONN}}"
+        CREATE USER GUI_XMDM_STX_TESTS IDENTIFIED BY {{.ORACLE_PASSWORD}};
+        GRANT CONNECT, RESOURCE TO GUI_XMDM_STX_TESTS;
+        ALTER USER GUI_XMDM_STX_TESTS QUOTA UNLIMITED ON USERS;
+        EOF
+      - |
+        echo "=== Creating test table ==="
+        grep -v "^-- @" "{{.DESIRED_STATE_DIR}}/GUI_XMDM_STX_TESTS-PROD-tables.sql" | \
+          sed 's/TABLESPACE XMDM_FACT//' | \
+          docker exec -i "{{.NEW_CONTAINER}}" sqlplus -s "{{.SQLPLUS_CONN}}"
+
+  test:sync:initial:
+    internal: true
+    vars:
+      OUTPUT_DIR: '{{.ORACLE_DIR}}/TEST_MIGRATIONS'
+      SQLPLUS_CONN: 'system/{{.ORACLE_PASSWORD}}@//localhost/{{.SERVICE}}'
+    cmds:
+      - |
+        echo "=== Running initial sync ==="
+        task sequala:run -- sync \
+          --desired "{{.DESIRED_STATE_DIR}}/GUI_XMDM_STX_TESTS-PROD-tables.sql" \
+          --database "jdbc:oracle:thin:{{.NEW_CONN}}" \
+          --schema "GUI_XMDM%" \
+          --dialect oracle \
+          --format sql \
+          --pretty true \
+          --source-transform "jq:{{.ORACLE_DIR}}/ddl-to-sync.jq" \
+          --ddls-from @database \
+          --with-deletes false \
+          --write-to "{{.OUTPUT_DIR}}/"
+      - |
+        if [ -f "{{.OUTPUT_DIR}}/GUI_XMDM-sync.sql" ]; then
+          echo "Applying initial migrations..."
+          sed 's/;;$/;/' "{{.OUTPUT_DIR}}/GUI_XMDM-sync.sql" | \
+            docker exec -i "{{.NEW_CONTAINER}}" sqlplus -s "{{.SQLPLUS_CONN}}"
+          echo "COMMIT;" | docker exec -i "{{.NEW_CONTAINER}}" sqlplus -s "{{.SQLPLUS_CONN}}"
+        fi
+
+  test:sync:modify-and-rerun:
+    internal: true
+    vars:
+      TEST_FILE: '{{.DESIRED_STATE_DIR}}/GUI_XMDM_STX_TESTS-PROD-tables.sql'
+      OUTPUT_DIR: '{{.ORACLE_DIR}}/TEST_MIGRATIONS'
+      SQLPLUS_CONN: 'system/{{.ORACLE_PASSWORD}}@//localhost/{{.SERVICE}}'
+    cmds:
+      - |
+        echo "=== Modifying test file ==="
+        cp "{{.TEST_FILE}}" "{{.TEST_FILE}}.bak"
+        sed -i.tmp 's/@TBL_GUI_NAME: MMPM tests/@TBL_GUI_NAME: MMPM Tests MODIFIED/' "{{.TEST_FILE}}"
+        rm -f "{{.TEST_FILE}}.tmp"
+        echo "Changed @TBL_GUI_NAME"
+      - |
+        echo "=== Running sync after modification ==="
+        rm -f "{{.OUTPUT_DIR}}"/*.sql
+        task sequala:run -- sync \
+          --desired "{{.TEST_FILE}}" \
+          --database "jdbc:oracle:thin:{{.NEW_CONN}}" \
+          --schema "GUI_XMDM%" \
+          --dialect oracle \
+          --format sql \
+          --pretty true \
+          --source-transform "jq:{{.ORACLE_DIR}}/ddl-to-sync.jq" \
+          --ddls-from @database \
+          --with-deletes false \
+          --write-to "{{.OUTPUT_DIR}}/"
+      - |
+        if [ -f "{{.OUTPUT_DIR}}/GUI_XMDM-sync.sql" ]; then
+          echo "=== Generated migration ==="
+          cat "{{.OUTPUT_DIR}}/GUI_XMDM-sync.sql"
+
+          if grep -q "UPDATE" "{{.OUTPUT_DIR}}/GUI_XMDM-sync.sql"; then
+            echo "✓ SUCCESS: UPDATE statement generated"
+          elif grep -q "INSERT" "{{.OUTPUT_DIR}}/GUI_XMDM-sync.sql"; then
+            echo "✗ FAILURE: INSERT statement generated (would create duplicates)"
+          fi
+
+          sed 's/;;$/;/' "{{.OUTPUT_DIR}}/GUI_XMDM-sync.sql" | \
+            docker exec -i "{{.NEW_CONTAINER}}" sqlplus -s "{{.SQLPLUS_CONN}}"
+          echo "COMMIT;" | docker exec -i "{{.NEW_CONTAINER}}" sqlplus -s "{{.SQLPLUS_CONN}}"
+        fi
+
+  test:sync:verify:
+    internal: true
+    vars:
+      TEST_FILE: '{{.DESIRED_STATE_DIR}}/GUI_XMDM_STX_TESTS-PROD-tables.sql'
+      SQLPLUS_CONN: 'system/{{.ORACLE_PASSWORD}}@//localhost/{{.SERVICE}}'
+    cmds:
+      - |
+        echo "=== Verifying results ==="
+        echo "SELECT TBL_GUI_NAME FROM GUI_XMDM.XMDM_CONF_TABLE WHERE APP_NAME = 'GUI_XMDM_STX_TESTS';" | \
+          docker exec -i "{{.NEW_CONTAINER}}" sqlplus -s "{{.SQLPLUS_CONN}}"
+
+        row_count=$(echo "SELECT COUNT(*) FROM GUI_XMDM.XMDM_CONF_TABLE WHERE APP_NAME = 'GUI_XMDM_STX_TESTS' AND TBL_NAME = 'S_TEST_MMPM';" | \
+          docker exec -i "{{.NEW_CONTAINER}}" sqlplus -s "{{.SQLPLUS_CONN}}" | grep -E "^\s*[0-9]+\s*$" | xargs)
+
+        echo "Row count: $row_count"
+
+        if [ "$row_count" = "1" ]; then
+          echo "✓ SUCCESS: Row was UPDATED (count=1)"
+        else
+          echo "✗ FAILURE: Expected count=1, got $row_count"
+        fi
+      - |
+        echo "=== Restoring original test file ==="
+        mv "{{.TEST_FILE}}.bak" "{{.TEST_FILE}}"
+
+  # ============================================================================
+  # DEFAULT
+  # ============================================================================
+
+  default:
+    desc: Show available tasks
+    cmds:
+      - task --list
