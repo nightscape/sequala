@@ -1,0 +1,160 @@
+name: Schema Change - Create PR
+
+on:
+  issues:
+    types: [labeled]
+
+jobs:
+  create-pr-and-respond:
+    if: github.event.label.name == 'schema-change-request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Configure GitHub CLI for Enterprise
+        run: echo "GH_HOST=${GITHUB_SERVER_URL#https://}" >> "$GITHUB_ENV"
+
+      - name: Generate branch name
+        id: branch
+        run: |
+          ISSUE_NUM="${{ github.event.issue.number }}"
+          SLUG=$(echo "${{ github.event.issue.title }}" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]/-/g' | sed 's/--*/-/g' | cut -c1-40)
+          BRANCH_NAME="schema/issue-${ISSUE_NUM}-${SLUG}"
+          echo "name=${BRANCH_NAME}" >> "$GITHUB_OUTPUT"
+          echo "issue_num=${ISSUE_NUM}" >> "$GITHUB_OUTPUT"
+
+      - name: Create or update branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          BRANCH="${{ steps.branch.outputs.name }}"
+
+          # Check if branch exists on remote
+          if git ls-remote --heads origin "$BRANCH" | grep -q "$BRANCH"; then
+            echo "Branch $BRANCH already exists, fetching..."
+            git fetch origin "$BRANCH"
+            git checkout "$BRANCH"
+          else
+            echo "Creating new branch $BRANCH..."
+            git checkout -b "$BRANCH"
+            git commit --allow-empty -m "Initialize schema change for #${{ steps.branch.outputs.issue_num }}"
+            git push origin "$BRANCH"
+          fi
+
+      - name: Create Pull Request (if not exists)
+        id: create-pr
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          ISSUE_NUM="${{ steps.branch.outputs.issue_num }}"
+          BRANCH="${{ steps.branch.outputs.name }}"
+
+          # Check if PR already exists for this branch
+          EXISTING_PR=$(gh pr list --head "$BRANCH" --json number --jq '.[0].number' 2>/dev/null || echo "")
+
+          if [ -n "$EXISTING_PR" ]; then
+            echo "PR #$EXISTING_PR already exists for branch $BRANCH"
+            echo "number=${EXISTING_PR}" >> "$GITHUB_OUTPUT"
+            echo "created=false" >> "$GITHUB_OUTPUT"
+          else
+            PR_URL=$(gh pr create \
+              --title "Schema: ${{ github.event.issue.title }}" \
+              --body "## Schema Change Request
+
+          > **Original request from #${ISSUE_NUM}:**
+          > ${{ github.event.issue.body }}
+
+          ---
+
+          Fixes #${ISSUE_NUM}
+
+          ---
+          *This PR was created automatically. The AI assistant will analyze the request and respond below.*" \
+              --head "$BRANCH" \
+              --base develop)
+
+            PR_NUMBER=$(echo "$PR_URL" | grep -oE '[0-9]+$')
+            echo "number=${PR_NUMBER}" >> "$GITHUB_OUTPUT"
+            echo "created=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Comment on issue with PR link
+        if: steps.create-pr.outputs.created == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh issue comment "${{ steps.branch.outputs.issue_num }}" \
+            --body "Created PR #${{ steps.create-pr.outputs.number }} to address this request. Further discussion will happen there."
+
+      - name: Install Copilot CLI
+        run: .github/scripts/install-copilot.sh
+
+      - name: Run Copilot for initial analysis
+        id: copilot
+        env:
+          # GH_TOKEN for repo operations (gh pr comment, git, etc.)
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # COPILOT_GITHUB_TOKEN for Copilot AI API (may be on different host, e.g., github.com vs GHE)
+          COPILOT_GITHUB_TOKEN: ${{ secrets.COPILOT_TOKEN }}
+        run: |
+          PROMPT=$(cat <<'EOF'
+          # Schema Change Request
+
+          ${{ github.event.issue.body }}
+
+          ---
+
+          Analyze this request:
+          1. Find the relevant table in sql/oracle/DESIRED_STATE/
+          2. Either ask clarifying questions OR propose the SQL modification
+          3. If making changes, edit the file directly using the write tool
+
+          IMPORTANT: After making file changes, output a commit message on a single line in this exact format:
+          COMMIT_MSG: Your commit message here
+
+          Follow the guidelines in sql/oracle/AGENTS.md.
+          EOF
+          )
+
+          cd sql/oracle
+
+          timeout 300 copilot -p "$PROMPT" \
+            --allow-tool write \
+            -s \
+            2>&1 | tee /tmp/copilot-output.log || true
+
+          # Capture the session ID from the most recent session file
+          LATEST_SESSION=$(ls -t ~/.copilot/session-state/*.jsonl 2>/dev/null | head -1)
+          if [ -n "$LATEST_SESSION" ]; then
+            SESSION_ID=$(basename "$LATEST_SESSION" .jsonl)
+            echo "session_id=${SESSION_ID}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Commit and push any changes
+        run: |
+          .github/scripts/commit-and-push.sh \
+            "${{ steps.branch.outputs.name }}" \
+            "Schema changes from copilot for #${{ steps.branch.outputs.issue_num }}"
+
+      - name: Upload session artifact
+        if: steps.copilot.outputs.session_id != ''
+        uses: actions/upload-artifact@v3
+        with:
+          name: schema-session-pr-${{ steps.create-pr.outputs.number }}
+          path: ~/.copilot/session-state/${{ steps.copilot.outputs.session_id }}.jsonl
+          retention-days: 90
+
+      - name: Post Copilot response as PR comment
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          .github/scripts/post-copilot-comment.sh \
+            "${{ steps.create-pr.outputs.number }}" \
+            "${{ steps.copilot.outputs.session_id }}"
