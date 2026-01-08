@@ -1,0 +1,32 @@
+name: Schema Change Request
+description: Request a change to the Oracle database schema using natural language
+title: "Schema change: "
+labels: ["schema-change-request"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Describe the schema change you need in plain language. An AI assistant will analyze your request and create a pull request with the proposed changes.
+
+        **Examples:**
+        - "Add a CLEARING_MEMBER_ID column to D_ST_BPM_MEMBER"
+        - "I need to store the user's middle name in the USERS table"
+        - "Add a timestamp for when records were last reviewed to PRICE_MONITOR"
+
+  - type: textarea
+    id: request
+    attributes:
+      label: What change do you need?
+      description: Describe the schema change in your own words
+      placeholder: "Add a column for..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context (optional)
+      description: Any additional information that might help (business purpose, data types, constraints, etc.)
+      placeholder: "This is needed for..."
+    validations:
+      required: false
