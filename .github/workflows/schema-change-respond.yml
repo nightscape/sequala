@@ -1,0 +1,185 @@
+name: Schema Change - Respond to Comments
+
+on:
+  issue_comment:
+    types: [created]
+  pull_request_review_comment:
+    types: [created]
+
+jobs:
+  respond:
+    # Only run on PR comments, not bot comments, and not copilot's own responses
+    if: |
+      github.event.issue.pull_request != null &&
+      github.event.comment.user.login != 'github-actions[bot]' &&
+      !contains(github.event.comment.body, '<!-- copilot-response -->')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - name: Get PR details
+        id: pr
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PR_NUMBER="${{ github.event.issue.number }}"
+          PR_DATA=$(gh pr view "$PR_NUMBER" --repo "${{ github.repository }}" --json headRefName,body)
+          BRANCH=$(echo "$PR_DATA" | jq -r '.headRefName')
+
+          # Check if this is a schema change PR
+          if [[ ! "$BRANCH" =~ ^schema/ ]]; then
+            echo "Not a schema change PR (branch: $BRANCH), skipping"
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "number=${PR_NUMBER}" >> "$GITHUB_OUTPUT"
+          echo "branch=${BRANCH}" >> "$GITHUB_OUTPUT"
+          echo "skip=false" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout PR branch
+        if: steps.pr.outputs.skip != 'true'
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.pr.outputs.branch }}
+          fetch-depth: 0
+
+      - name: Extract session ID from PR comments
+        if: steps.pr.outputs.skip != 'true'
+        id: session
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Look for session ID in PR comments (stored in copilot-response marker)
+          SESSION_ID=$(gh pr view "${{ steps.pr.outputs.number }}" --comments --json comments \
+            | jq -r '.comments[].body' \
+            | grep -oP '<!-- copilot-response: \K[a-f0-9-]+(?= -->)' \
+            | tail -1) || true
+
+          echo "id=${SESSION_ID}" >> "$GITHUB_OUTPUT"
+
+      - name: Download session artifact
+        if: steps.pr.outputs.skip != 'true' && steps.session.outputs.id != ''
+        uses: actions/download-artifact@v4
+        with:
+          name: schema-session-pr-${{ steps.pr.outputs.number }}
+          path: /tmp/session-download/
+        continue-on-error: true
+
+      - name: Restore session file
+        if: steps.pr.outputs.skip != 'true' && steps.session.outputs.id != ''
+        run: |
+          mkdir -p ~/.copilot/session-state
+          if [ -f "/tmp/session-download/${{ steps.session.outputs.id }}.jsonl" ]; then
+            cp "/tmp/session-download/${{ steps.session.outputs.id }}.jsonl" ~/.copilot/session-state/
+            echo "Restored session: ${{ steps.session.outputs.id }}"
+          else
+            echo "No session file found in artifact"
+          fi
+
+      - name: Install Copilot CLI
+        if: steps.pr.outputs.skip != 'true'
+        run: |
+          COPILOT_VERSION="0.0.374"
+          curl -fsSL "https://github.com/github/copilot-cli/releases/download/v${COPILOT_VERSION}/copilot-linux-x64.tar.gz" \
+            | tar -xz -C /usr/local/bin
+          chmod +x /usr/local/bin/copilot
+          copilot --version
+
+      - name: Run Copilot with user comment
+        if: steps.pr.outputs.skip != 'true'
+        id: copilot
+        env:
+          # GH_TOKEN for repo operations (gh pr comment, git, etc.)
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # COPILOT_GITHUB_TOKEN for Copilot AI API (may be on different host, e.g., github.com vs GHE)
+          COPILOT_GITHUB_TOKEN: ${{ secrets.COPILOT_TOKEN }}
+          # Pass comment body as env var to avoid shell escaping issues
+          COMMENT_BODY: ${{ github.event.comment.body }}
+        run: |
+          SESSION_ID="${{ steps.session.outputs.id }}"
+
+          # Write prompt to temp file to avoid shell escaping issues
+          cat > /tmp/prompt.txt << 'PROMPT_HEADER'
+          # User Comment on Schema Change PR
+
+          PROMPT_HEADER
+
+          # Append the comment body (from env var, preserves special chars)
+          echo "$COMMENT_BODY" >> /tmp/prompt.txt
+
+          cat >> /tmp/prompt.txt << 'PROMPT_FOOTER'
+
+          ---
+
+          Continue the conversation:
+          1. If this answers a previous question, proceed with the schema modification
+          2. If more clarification is needed, ask follow-up questions
+          3. If making changes, edit the file directly and commit
+
+          Follow the guidelines in sql/oracle/AGENTS.md.
+          PROMPT_FOOTER
+
+          PROMPT=$(cat /tmp/prompt.txt)
+
+          cd sql/oracle
+
+          # Resume session if we have one, otherwise start fresh
+          RESUME_FLAG=""
+          if [ -n "$SESSION_ID" ] && [ -f ~/.copilot/session-state/${SESSION_ID}.jsonl ]; then
+            RESUME_FLAG="--resume ${SESSION_ID}"
+            echo "Resuming session: ${SESSION_ID}"
+          else
+            echo "Starting new session"
+          fi
+
+          timeout 300 copilot $RESUME_FLAG -p "$PROMPT" \
+            --allow-tool "shell(git:*)" \
+            --allow-tool write \
+            -s \
+            2>&1 | tee /tmp/copilot-output.log || true
+
+          # Capture the session ID
+          LATEST_SESSION=$(ls -t ~/.copilot/session-state/*.jsonl 2>/dev/null | head -1)
+          if [ -n "$LATEST_SESSION" ]; then
+            NEW_SESSION_ID=$(basename "$LATEST_SESSION" .jsonl)
+            echo "session_id=${NEW_SESSION_ID}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Upload updated session artifact
+        if: steps.pr.outputs.skip != 'true' && steps.copilot.outputs.session_id != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: schema-session-pr-${{ steps.pr.outputs.number }}
+          path: ~/.copilot/session-state/${{ steps.copilot.outputs.session_id }}.jsonl
+          retention-days: 90
+          overwrite: true
+
+      - name: Post Copilot response as PR comment
+        if: steps.pr.outputs.skip != 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          SESSION_ID="${{ steps.copilot.outputs.session_id }}"
+
+          # Build the comment body
+          {
+            echo '<details><summary>Copilot Response</summary>'
+            echo ''
+            echo '```'
+            cat /tmp/copilot-output.log
+            echo '```'
+            echo ''
+            echo '</details>'
+            echo ''
+            if [ -n "$SESSION_ID" ]; then
+              echo "<!-- copilot-response: ${SESSION_ID} -->"
+            else
+              echo '<!-- copilot-response -->'
+            fi
+          } > /tmp/comment-body.md
+
+          gh pr comment "${{ steps.pr.outputs.number }}" \
+            --body-file /tmp/comment-body.md
